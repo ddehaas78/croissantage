@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pwnd hub - Hot Videos Internationally (Educational)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Base styles matching the screenshot */
+        body {
+            background-color: #0d0d0d;
+            font-family: Arial, sans-serif;
+            color: #d1d1d1;
+        }
+        
+        /* Specific element colors */
+        .ph-orange-bg {
+            background-color: #ff9300;
+        }
+        .text-ph-orange {
+            color: #ff9300;
+        }
+        .header-bg {
+            background-color: #242424;
+        }
+        .secondary-nav-bg {
+            background-color: #1a1a1a;
+        }
+
+        /* Logo styling */
+        .logo-box {
+            background-color: #ff9300;
+            color: black;
+            border-radius: 4px;
+            padding: 0 4px;
+            margin-left: 2px;
+            font-weight: bold;
+        }
+
+        /* Navigation Styles */
+        .nav-link {
+            text-decoration: none;
+            color: #d1d1d1;
+            font-weight: bold;
+            padding: 10px 15px;
+            transition: background-color 0.2s, color 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-link:hover {
+            background-color: #333;
+            color: white;
+        }
+        .nav-link.active {
+            border-bottom: 3px solid #ff9300;
+            background-color: #333;
+            color: white;
+        }
+
+        /* Button Styles */
+        .btn-premium {
+            background-color: #ff9300;
+            color: black;
+            font-weight: bold;
+            padding: 5px 12px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            transition: opacity 0.2s;
+        }
+        .btn-premium:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-secondary {
+            border: 1px solid #555;
+            color: #d1d1d1;
+            padding: 5px 12px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .btn-secondary:hover {
+            border-color: #777;
+            color: white;
+        }
+
+        /* Video Card Styles */
+        .video-card {
+            transition: transform 0.2s;
+            background-color: #1a1a1a; /* Needed for card feel */
+        }
+        .video-card:hover {
+            transform: scale(1.02);
+            z-index: 10;
+        }
+        .thumbnail-container {
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+        }
+        .duration-badge {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 12px;
+            padding: 1px 4px;
+            border-radius: 2px;
+        }
+        .hd-badge {
+            background-color: #ff9300; /* Orange background for HD/4K */
+            color: black;
+            font-size: 10px;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-weight: bold;
+            margin-left: 5px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* Pagination Styles */
+        .pagination-item {
+            padding: 5px 10px;
+            margin: 0 2px;
+            background-color: #242424;
+            color: #d1d1d1;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .pagination-item:hover, .pagination-item.active {
+            background-color: #ff9300;
+            color: black;
+        }
+
+        /* --- ADVERTISEMENT STYLING --- */
+        .ad-sidebar {
+            width: 300px;
+            flex-shrink: 0;
+        }
+
+        .fake-ad {
+            border: 1px solid #333;
+            background-color: #1a1a1a;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .fake-ad:hover {
+            border-color: #ff9300;
+            transform: scale(1.02);
+        }
+
+        .ad-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #ff9300;
+            color: black;
+            font-size: 10px;
+            padding: 2px 4px;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .ad-text-overlay {
+            padding: 10px;
+            text-align: center;
+        }
+
+        .ad-headline {
+            color: #ff9300;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            line-height: 1.2;
+        }
+
+        .ad-subtext {
+            color: #fff;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .ad-button {
+            display: inline-block;
+            background: #ff9300;
+            color: black;
+            padding: 5px 15px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <header class="header-bg border-b border-black">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            
+            <div class="flex items-center space-x-4">
+                <button class="text-gray-400 text-xl hover:text-white"><i class="fas fa-bars"></i></button>
+                <a href="#" class="flex items-center text-2xl tracking-tighter group">
+                    <span class="text-white">Pwnd</span>
+                    <span class="logo-box">hub</span>
+                </a>
+            </div>
+
+            <div class="hidden md:flex flex-grow max-w-2xl mx-6 relative">
+                <input type="text" placeholder="Search videos..." class="w-full bg-black text-gray-300 py-2 px-4 rounded-l-sm focus:outline-none focus:ring-1 focus:ring-ph-orange border border-transparent focus:border-ph-orange">
+                <button class="bg-black text-gray-400 px-5 rounded-r-sm hover:text-white border-t border-r border-b border-transparent hover:border-gray-700">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="absolute right-14 top-2 text-gray-400 hover:text-white">
+                    <i class="fas fa-camera"></i>
+                </button>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <a href="#" class="text-gray-400 hover:text-white text-sm hidden sm:block">Log In</a>
+                <a href="#" class="text-gray-400 hover:text-white text-sm hidden sm:block">Sign Up</a>
+                <a href="#" class="btn-premium hidden sm:inline-block">Upgrade</a>
+                <a href="#" class="btn-secondary hidden sm:inline-block"><i class="fas fa-upload mr-1"></i> Upload</a>
+            </div>
+        </div>
+    </header>
+
+    <nav class="secondary-nav-bg border-b border-black shadow-lg">
+        <div class="max-w-7xl mx-auto px-2">
+            <div class="flex items-center overflow-x-auto whitespace-nowrap scrollbar-hide">
+                <a href="#" class="nav-link active"><i class="fas fa-home mr-1"></i> Home</a>
+                <a href="html/1.html" class="nav-link">Videos</a>
+                <a href="html/2.html" class="nav-link">Categories</a>
+                <a href="html/3.html" class="nav-link">Live Cams</a>
+                <a href="html/4.html" class="nav-link">Pornstars</a>
+                <a href="html/5.html" class="nav-link">Community</a>
+                <a href="html/6.html" class="nav-link">Photos</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center border-b border-gray-800 gap-4">
+        <h1 class="text-xl text-white">Hot Videos Internationally</h1>
+        <div class="hidden sm:block">
+            <span class="text-gray-500 text-sm mr-2">Sort by:</span>
+            <select class="bg-black text-gray-300 border border-gray-700 text-sm rounded px-2 py-1 focus:outline-none">
+                <option>Recommended</option>
+                <option>Most Viewed</option>
+                <option>Top Rated</option>
+                <option>Newest</option>
+            </select>
+        </div>
+    </div>
+
+    <main class="w-full max-w-[1600px] mx-auto px-4 py-6 flex gap-6 justify-center">
+
+        <aside class="ad-sidebar hidden 2xl:block sticky top-4 h-fit">
+            <a href="html/trap.html" class="block">
+                <div class="fake-ad">
+                    <span class="ad-badge">HOT DEAL</span>
+                    <img src="images/croissantFlou.png" alt="Croissant" class="w-full h-48 object-cover">
+                    <div class="ad-text-overlay">
+                        <div class="ad-headline">HOT SINGLES IN YOUR AREA</div>
+                        <div class="ad-subtext">They are flaky, buttery, and waiting for you.</div>
+                        <div class="ad-button">EAT NOW &gt;</div>
+                    </div>
+                </div>
+            </a>
+
+            <a href="html/trap.html" class="block">
+                <div class="fake-ad">
+                    <span class="ad-badge">SPONSORED</span>
+                    <img src="images/mikadulte.png" alt="Machine" class="w-full h-48 object-cover">
+                    <div class="ad-text-overlay">
+                        <div class="ad-headline">ENLARGE YOUR OUTPUT</div>
+                        <div class="ad-subtext">Devs hate him! This machine does the work of 10 interns.</div>
+                        <div class="ad-button">GET HARDWARE &gt;</div>
+                    </div>
+                </div>
+            </a>
+
+        </aside>
+
+        <div class="flex-grow max-w-7xl">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1587620962725-abab7fe55159?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
+                        <div class="duration-badge">12:45</div>
+                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200"></div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Stepsister Stuck in Infinite Loop (Help Her!)</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">PythonMaster69</span>
+                            <span class="hd-badge">4K</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>1.2M views</span>
+                            <span>98%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
+                        <div class="duration-badge">08:30</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Hardcore CSS Debugging - UNCENSORED</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">FlexBoxFan</span>
+                            <span class="hd-badge">1080p</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>850K views</span>
+                            <span>95%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
+                        <div class="duration-badge">24:00</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Young Intern Gets DESTROYED by Senior Dev (Code Review)</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">TechLead</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>2.4M views</span>
+                            <span>99%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
+                        <div class="duration-badge">15:15</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Big Black Console (BBC) Compilation</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">LinuxLover</span>
+                            <span class="hd-badge">HD</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>500K views</span>
+                            <span>92%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
+                        <div class="duration-badge">45:00</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Full Stack Action: Frontend AND Backend at the same time</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">DoubleTeamDev</span>
+                            <span class="hd-badge">4K</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>3.1M views</span>
+                            <span>97%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://makandra.de/system/production/images/makandra/000/553/images/c67d9b53077bfc98c0cbc5aa07cdae3de84645a7/20_Jahre_Ruby_on_Rails_w1750.png?1720684903" alt="Coding" class="w-full h-full object-cover">
+                        <div class="duration-badge">10:20</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Hot Ruby on Rails Action</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">GemMaster</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>600K views</span>
+                            <span>88%</span>
+                        </div>
+                    </div>
+                </div>
+                 <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1592609931095-54a2168ae893?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
+                        <div class="duration-badge">05:45</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Quickie: Fix that Bug in 5 minutes</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">SpeedCoder</span>
+                            <span class="hd-badge">HD</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>200K views</span>
+                            <span>91%</span>
+                        </div>
+                    </div>
+                </div>
+
+                 <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1629654297299-c8506221ca97?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
+                        <div class="duration-badge">18:00</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Naughty Node.js: Explaining the Event Loop</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">AsyncAwaiter</span>
+                            <span class="hd-badge">1080p</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>900K views</span>
+                            <span>96%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Hacker" class="w-full h-full object-cover">
+                        <div class="duration-badge">07:30</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Gaping Security Hole Exploited by Teen</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">WhiteHat69</span>
+                            <span class="hd-badge">4K</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>3.5M views</span>
+                            <span>98%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1550439062-609e1531270e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Data" class="w-full h-full object-cover">
+                        <div class="duration-badge">14:20</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Injecting SQL into her tight Backend</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">DB_Admin_XXX</span>
+                            <span class="hd-badge">HD</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>800K views</span>
+                            <span>94%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Mobile Dev" class="w-full h-full object-cover">
+                        <div class="duration-badge">22:00</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">My Wife Caught Me Using PHP (SHOCKING)</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">LaravelLover</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>1.1M views</span>
+                            <span>85%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Code" class="w-full h-full object-cover">
+                        <div class="duration-badge">31:10</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Two Microservices, One Cup (Integration Hell)</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">KubernetesKing</span>
+                            <span class="hd-badge">4K</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>5M views</span>
+                            <span>99%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Matrix" class="w-full h-full object-cover">
+                        <div class="duration-badge">03:50</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Solo Coder Touches Himself (Private Methods)</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">OOp_Fanatic</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>400K views</span>
+                            <span>90%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Server" class="w-full h-full object-cover">
+                        <div class="duration-badge">55:00</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Massive Load Balancing (Stress Test Compilation)</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">DevOpsDaddy</span>
+                            <span class="hd-badge">HD</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>150K views</span>
+                            <span>93%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Code Screen" class="w-full h-full object-cover">
+                        <div class="duration-badge">19:45</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">She Handles My Exception (Try-Catch Block)</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">JavaJunkie</span>
+                            <span class="hd-badge">1080p</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>2.1M views</span>
+                            <span>96%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card group">
+                    <div class="thumbnail-container">
+                        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Analytics" class="w-full h-full object-cover">
+                        <div class="duration-badge">11:11</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Caught Leaking Memory in Public</h3>
+                        <div class="text-xs text-gray-500 mb-1">
+                            <span class="hover:text-gray-300 cursor-pointer">C_Plus_Plus_Guy</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-600">
+                            <span>950K views</span>
+                            <span>89%</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+             <div class="mt-8 flex justify-center">
+                <nav class="flex items-center space-x-1">
+                    <a href="#" class="pagination-item bg-gray-800 cursor-not-allowed opacity-50">&larr; Prev</a>
+                    <a href="#" class="pagination-item active">1</a>
+                    <a href="#" class="pagination-item">2</a>
+                    <a href="#" class="pagination-item">3</a>
+                    <span class="px-3 py-1 text-gray-500 text-sm">...</span>
+                    <a href="#" class="pagination-item">Next &rarr;</a>
+                </nav>
+            </div>
+        </div>
+
+        <aside class="ad-sidebar hidden xl:block sticky top-4 h-fit">
+            <a href="html/trap.html" class="block"> 
+                <div class="fake-ad">
+                    <span class="ad-badge">LIVE CAM</span>
+                    <img src="images/degoulinant.png" alt="Pile of Croissants" class="w-full h-48 object-cover">
+                    <div class="ad-text-overlay">
+                        <div class="ad-headline">GROUP ACTION</div>
+                        <div class="ad-subtext">Satisfy your cravings with unlimited carbs tonight.</div>
+                        <div class="ad-button">JOIN FOR FREE &gt;</div>
+                    </div>
+                </div>
+            </a>
+
+            <a href="html/trap.html" class="block">
+                <div class="fake-ad">
+                    <span class="ad-badge">18+ ONLY</span>
+                    <img src="images/flouDARK CHOCOLATE.png" alt="Machine 2" class="w-full h-48 object-cover">
+                    <div class="ad-text-overlay">
+                        <div class="ad-headline">SHE WANTS YOUR RAM</div>
+                        <div class="ad-subtext">This AI assistant will do anything you ask. Anything.</div>
+                        <div class="ad-button">CHAT NOW &gt;</div>
+                    </div>
+                </div>
+            </a>
+        </aside>
+    </main>
+    
+    <footer class="bg-black border-t border-gray-900 mt-10 py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <div class="flex flex-wrap justify-center space-x-4 md:space-x-8 text-xs font-semibold text-gray-600">
+                <a href="#" class="hover:text-ph-orange transition duration-150">About</a>
+                <a href="#" class="hover:text-ph-orange transition duration-150">Help</a>
+                <a href="#" class="hover:text-ph-orange transition duration-150">Press</a>
+                <a href="#" class="hover:text-ph-orange transition duration-150">Terms</a>
+                <a href="#" class="hover:text-ph-orange transition duration-150">Privacy</a>
+                <a href="#" class="hover:text-ph-orange transition duration-150">Content Policy</a>
+                <a href="#" class="hover:text-ph-orange transition duration-150">Advertising</a>
+                <a href="#" class="hover:text-ph-orange transition duration-150">Cookies</a>
+            </div>
+            <p class="text-gray-700 text-xs mt-4">© 2025 Pwnd hub. All rights reserved. Parents: This site is for coders only.</p>
+        </div>
+    </footer>
+
+
+    <script>
+        // Fullscreen on click for page
+        document.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(e => {
+                    console.log("Fullscreen request denied:", e);
+                });
+            }
+        }, { once: true });
+    </script>
+
+    <div id="video-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex items-center justify-center p-4">
+        <div class="relative w-full max-w-5xl bg-black border border-gray-800 rounded-lg overflow-hidden shadow-2xl">
+            <button id="close-modal" class="absolute top-2 right-2 text-gray-400 hover:text-white z-10 bg-black bg-opacity-50 rounded-full w-8 h-8 flex items-center justify-center">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <video id="popup-video" controls class="w-full h-auto max-h-[80vh]">
+                <source src="images/video.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <script>
+        const videoModal = document.getElementById('video-modal');
+        const popupVideo = document.getElementById('popup-video');
+        const closeModalBtn = document.getElementById('close-modal');
+        const videoCards = document.querySelectorAll('.video-card');
+
+        // Open Modal
+        videoCards.forEach(card => {
+            card.addEventListener('click', (e) => {
+                e.preventDefault(); 
+                videoModal.classList.remove('hidden');
+                popupVideo.play().catch(e => console.log("Autoplay bloqué:", e));
+            });
+        });
+
+        // Close Modal
+        const closeModal = () => {
+            videoModal.classList.add('hidden');
+            popupVideo.pause();
+            popupVideo.currentTime = 0;
+        };
+
+        closeModalBtn.addEventListener('click', closeModal);
+
+        // Close when clicking outside
+        videoModal.addEventListener('click', (e) => {
+            if (e.target === videoModal) closeModal();
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !videoModal.classList.contains('hidden')) closeModal();
+        });
+    </script>
+
+</body>
+</html>

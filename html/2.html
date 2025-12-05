@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Feed</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* Empêche le défilement */
+            display: flex;             /* Centre le contenu */
+            justify-content: center;   /* Centre horizontalement */
+            align-items: center;       /* Centre verticalement */
+        }
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill; /* CHANGÉ de 'cover' à 'fill' : l'image s'étire pour remplir tout l'écran, quitte à être déformée */
+            display: block;
+            /* Ajout d'une transition pour que le zoom soit fluide */
+            transition: transform 0.1s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <!-- Attention : j'ai remis .webp car c'est le fichier que tu as uploadé. 
+         Si tu as vraiment un .png, change l'extension ici. -->
+    <img id="myImage" src="creepy%20pasta%202.png" alt="Live Feed">
+
+    <script>
+        const img = document.getElementById('myImage');
+        let currentScale = 1;
+
+        // --- PLEIN ÉCRAN AU CLIC ---
+        document.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(e => {
+                    console.log("Erreur plein écran:", e);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

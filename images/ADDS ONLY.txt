@@ -1,0 +1,127 @@
+CSS
+
+/* ADVERTISEMENT STYLING */
+.ad-sidebar {
+    width: 300px;
+    flex-shrink: 0;
+}
+
+.fake-ad {
+    border: 1px solid #333;
+    background-color: #1a1a1a;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.fake-ad:hover {
+    border-color: #ff9300;
+    transform: scale(1.02);
+}
+
+.ad-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #ff9300;
+    color: black;
+    font-size: 10px;
+    padding: 2px 4px;
+    font-weight: bold;
+}
+
+.ad-text-overlay {
+    padding: 10px;
+    text-align: center;
+}
+
+.ad-headline {
+    color: #ff9300;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+    line-height: 1.2;
+}
+
+.ad-subtext {
+    color: #fff;
+    font-size: 0.8rem;
+}
+
+.ad-button {
+    background: #d32f2f; /* Alert Red */
+    color: white;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-top: 8px;
+    display: inline-block;
+    font-size: 0.9rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Hide ads on small screens so layout doesn't break */
+@media (max-width: 1280px) {
+    .ad-sidebar { display: none; }
+}
+
+
+Left Sidebar:
+
+HTML
+
+<aside class="ad-sidebar sticky top-32">
+    <div class="fake-ad">
+        <span class="ad-badge">AD</span>
+        <img src="croissant4.jpg" alt="Hot Single Croissant" class="w-full h-48 object-cover">
+        <div class="ad-text-overlay">
+            <div class="ad-headline">HOT SINGLE CROISSANTS</div>
+            <div class="ad-subtext">Waiting for you in the breakroom right now.</div>
+            <div class="ad-button">EAT NOW &gt;</div>
+        </div>
+    </div>
+
+    <div class="fake-ad">
+        <span class="ad-badge">SPONSORED</span>
+        <img src="croissantMachine1.jpg" alt="Machine" class="w-full h-48 object-cover">
+        <div class="ad-text-overlay">
+            <div class="ad-headline">ENLARGE YOUR OUTPUT</div>
+            <div class="ad-subtext">Devs hate him! This machine does the work of 10 interns.</div>
+            <div class="ad-button">GET HARDWARE &gt;</div>
+        </div>
+    </div>
+</aside>
+Right Sidebar:
+
+HTML
+
+<aside class="ad-sidebar sticky top-32">
+    <div class="fake-ad">
+        <span class="ad-badge">LIVE CAM</span>
+        <img src="croissant3.jpg" alt="Pile of Croissants" class="w-full h-48 object-cover">
+        <div class="ad-text-overlay">
+            <div class="ad-headline">GROUP ACTION</div>
+            <div class="ad-subtext">Satisfy your cravings with unlimited carbs tonight.</div>
+            <div class="ad-button">JOIN FOR FREE &gt;</div>
+        </div>
+    </div>
+
+    <div class="fake-ad">
+        <span class="ad-badge">18+ ONLY</span>
+        <img src="croissantMachine2.webp" alt="Machine 2" class="w-full h-48 object-cover">
+        <div class="ad-text-overlay">
+            <div class="ad-headline">HARDCORE ROLLING</div>
+            <div class="ad-subtext">Watch this dough get flattened and stuffed LIVE.</div>
+            <div class="ad-button">WATCH NOW &gt;</div>
+        </div>
+    </div>
+</aside>
+
