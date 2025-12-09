@@ -261,7 +261,8 @@
 
     <main class="w-full max-w-[1600px] mx-auto px-4 py-6 flex gap-6 justify-center">
 
-        <aside class="ad-sidebar hidden 2xl:block sticky top-4 h-fit">
+        <!-- CHANGED: '2xl:block' to 'xl:block' so it shows on 1280px+ screens -->
+        <aside class="ad-sidebar hidden xl:block sticky top-4 h-fit">
             <a href="html/trap.html" class="block">
                 <div class="fake-ad">
                     <span class="ad-badge">HOT DEAL</span>
@@ -289,7 +290,8 @@
         </aside>
 
         <div class="flex-grow max-w-7xl">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <!-- CHANGED: 'xl:grid-cols-4' to '2xl:grid-cols-4' so it stays 3 columns on medium-large screens to fit the ads -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
                 
                 <div class="video-card group">
                     <div class="thumbnail-container">
