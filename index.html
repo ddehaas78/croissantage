@@ -659,18 +659,6 @@
         </div>
     </footer>
 
-
-    <script>
-        // Fullscreen on click for page
-        document.addEventListener('click', function() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(e => {
-                    console.log("Fullscreen request denied:", e);
-                });
-            }
-        }, { once: true });
-    </script>
-
     <div id="video-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex items-center justify-center p-4">
         <div class="relative w-full max-w-5xl bg-black border border-gray-800 rounded-lg overflow-hidden shadow-2xl">
             <button id="close-modal" class="absolute top-2 right-2 text-gray-400 hover:text-white z-10 bg-black bg-opacity-50 rounded-full w-8 h-8 flex items-center justify-center">
