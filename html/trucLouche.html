@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wana Decrypt0r 2.0</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #5e0000;
+            font-family: 'Malgun Gothic', 'Dotum', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .window {
+            background-color: #880000;
+            width: 980px;
+            height: 760px;
+            border: 4px solid #ffffff;
+            display: grid;
+            grid-template-rows: 90px 1fr auto;
+            color: white;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+            position: relative;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 25px;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* REVERTED LOCK ICON */
+        .lock-icon {
+            font-size: 45px;
+            color: white;
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 65px;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-family: 'Arial', sans-serif;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 0;
+            text-shadow: 2px 2px 0px #000;
+            letter-spacing: 1px;
+        }
+
+        .language-select {
+            color: black;
+            font-weight: bold;
+            padding: 2px 5px;
+            font-family: 'Malgun Gothic', sans-serif;
+            font-size: 14px;
+        }
+
+        /* CONTENT LAYOUT */
+        .content {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            padding: 10px 25px;
+            gap: 20px;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .menu-links {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .menu-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: white;
+            text-align: left;
+            padding: 6px 10px;
+            font-size: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: underline;
+            font-family: 'Malgun Gothic', sans-serif;
+            text-shadow: 1px 1px 0 #000;
+        }
+        .menu-btn:hover {
+            color: yellow;
+        }
+
+        /* TIMERS */
+        .timer-frame {
+            border: 2px solid white;
+            background-color: #ffcc00;
+            color: black;
+            padding: 5px;
+            text-align: center;
+            box-shadow: 3px 3px 5px rgba(0,0,0,0.5);
+        }
+        
+        .timer-title {
+            font-size: 13px;
+            font-weight: bold;
+        }
+        
+        .timer-date {
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .timer-counter {
+            background-color: #880000;
+            color: white;
+            font-size: 30px;
+            font-family: 'Consolas', monospace;
+            font-weight: bold;
+            padding: 2px;
+            margin-bottom: 5px;
+            border: 1px solid white;
+        }
+        
+        .timer-footer {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* TEXT AREA */
+        .text-area {
+            background-color: white;
+            color: black;
+            padding: 20px;
+            overflow-y: scroll;
+            border: 2px solid black;
+            font-size: 14px;
+            line-height: 1.5;
+            height: 380px;
+        }
+
+        .text-area h2 {
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            text-decoration: underline;
+            margin-top: 0;
+            color: black;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #880000;
+        }
+
+        /* FOOTER */
+        .footer {
+            padding: 15px 30px 25px 30px;
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .footer-left {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .butter-img {
+            width: 150px;
+            height: 150px;
+            border: 2px solid white;
+            object-fit: cover;
+            background: white;
+        }
+
+        .contact-link {
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-decoration: underline;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .footer-right {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .payment-info-box {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .pay-label {
+            color: yellow;
+            font-weight: bold;
+            font-size: 16px;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        .btc-input {
+            width: 100%;
+            padding: 8px;
+            font-size: 16px;
+            font-family: monospace;
+            border: none;
+            background: white;
+            color: black;
+            font-weight: bold;
+            box-sizing: border-box;
+        }
+
+        .action-buttons-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .btn-large {
+            flex: 1;
+            padding: 12px;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            border: 2px solid black;
+            background: #dcdcdc;
+            font-family: 'Malgun Gothic', sans-serif;
+            text-align: center;
+            box-shadow: 2px 2px 0 #000;
+        }
+        .btn-large:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        /* FAKE MODAL */
+        #fake-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .win-modal {
+            width: 450px;
+            background: #ece9d8;
+            border: 2px solid #0055ea;
+            box-shadow: 5px 5px 15px black;
+            font-family: Tahoma, sans-serif;
+            color: black;
+        }
+        .win-header {
+            background: linear-gradient(to right, #0058ee, #3b87fc);
+            color: white;
+            padding: 6px 10px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+        .win-body {
+            padding: 25px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-size: 13px;
+        }
+        .win-footer {
+            padding: 10px;
+            text-align: center;
+            background: #ece9d8;
+        }
+        .win-btn {
+            padding: 4px 25px;
+            border: 1px solid #707070;
+            background: #f0f0f0;
+            font-family: Tahoma, sans-serif;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="window">
+        <div class="header">
+            <div class="header-left">
+                <div class="lock-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h1>Wana Decrypt0r 2.0</h1>
+            </div>
+            <select class="language-select">
+                <option selected>Korean</option>
+                <option>Korean</option>
+                <option>Korean</option>
+            </select>
+        </div>
+
+        <div class="content">
+            <div class="sidebar">
+                <div class="menu-links">
+                    <button class="menu-btn">내 컴퓨터에 무슨 일이 일어났습니까?</button>
+                    <button class="menu-btn">파일을 복구할 수 있습니까?</button>
+                    <button class="menu-btn">지불은 어떻게 합니까?</button>
+                </div>
+
+                <div class="timer-frame">
+                    <div class="timer-title">지불 금액 인상 예정 시간:</div>
+                    <div class="timer-date" id="date1"></div>
+                    <div class="timer-counter" id="timer1">...</div>
+                    <div class="timer-footer">남은 시간</div>
+                </div>
+
+                <div class="timer-frame">
+                    <div class="timer-title">파일 영구 삭제 예정 시간:</div>
+                    <div class="timer-date" id="date2"></div>
+                    <div class="timer-counter" id="timer2">...</div>
+                    <div class="timer-footer">남은 시간</div>
+                </div>
+            </div>
+
+            <div class="text-area">
+                <h2>앗! 귀하의 중요한 파일이 암호화되었습니다.</h2>
+                <br>
+                <p><span class="highlight">내 컴퓨터에 무슨 일이 일어났습니까?</span><br>
+                귀하의 중요한 문서, 사진, 비디오, 데이터베이스 및 <span class="highlight">크루아상 레시피</span>가 이 컴퓨터를 위해 생성된 고유 키로 암호화되었습니다.<br>
+                비공개 복호화 키는 당사의 비밀 인터넷 서버에 저장되어 있으며, 비용을 지불하고 키를 얻기 전까지는 누구도 파일을 복구할 수 없습니다.</p>
+                
+                <hr style="border-top: 1px solid #ccc; margin: 15px 0;">
+
+                <p><span class="highlight">파일을 복구할 수 있습니까?</span><br>
+                물론입니다. 당사는 귀하가 모든 파일을 안전하고 쉽게 복구할 수 있음을 보장합니다. 하지만 시간이 많지 않습니다.</p>
+                
+                <p>일부 파일은 무료로 복호화할 수 있습니다. <a href="#" onclick="showError()" style="color:blue;">복호화(Decrypt)</a>를 클릭하여 지금 시도해 보십시오.</p>
+                <p>하지만 모든 파일을 복구하려면 지불을 완료해야 합니다.</p>
+                <p>지불 기한은 3일입니다. 이 기간이 지나면 가격은 두 배로 인상됩니다.</p>
+                <p>또한, 7일 이내에 지불하지 않으면 파일을 영원히 복구할 수 없게 됩니다.</p>
+                <p>우리는 버터(Butter)를 좋아합니다. 지불은 버터로 이루어집니다.</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-left">
+                <img src="../images/bitcoin.png" class="butter-img" alt="Butter">
+                <div class="contact-link">문의하기 (Contact Us)</div>
+            </div>
+
+            <div class="footer-right">
+                <div class="payment-info-box">
+                    <div class="pay-label">아래 주소로 $300 상당의 버터(Butter)를 보내십시오:</div>
+                    <input type="text" class="btc-input" value="bc1ih6x5442g2mlz8bvpswt287eu80vxvbkaszvjpm" readonly>
+                </div>
+                
+                <div class="action-buttons-container">
+                    <button class="btn-large" onclick="showError()">지불 확인<br><span style="font-size:12px">Check Payment</span></button>
+                    <button class="btn-large" onclick="showError()">복호화<br><span style="font-size:12px">Decrypt</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="fake-modal">
+        <div class="win-modal">
+            <div class="win-header">
+                <span>Wana Decrypt0r 2.0</span>
+                <span style="cursor:pointer; color:white;" onclick="closeModal()">X</span>
+            </div>
+            <div class="win-body">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Error.svg/1200px-Error.svg.png" width="40">
+                <div>
+                    <strong>네트워크 오류</strong><br><br>
+                    버터 서버에 연결할 수 없습니다.<br>
+                    인터넷 연결을 확인하거나 버터를 직접 배송해 주세요.
+                </div>
+            </div>
+            <div class="win-footer">
+                <button class="win-btn" onclick="closeModal()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set Dates dynamically based on current visit time
+        const now = new Date();
+        const d1 = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days from NOW
+        const d2 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from NOW
+
+        // Display dates in Korean format
+        document.getElementById('date1').innerText = d1.toLocaleString('ko-KR');
+        document.getElementById('date2').innerText = d2.toLocaleString('ko-KR');
+
+        // Timer Logic
+        function startTimer(duration, display) {
+            let timer = duration, days, hours, minutes, seconds;
+            
+            // Function to update the display
+            function update() {
+                days = Math.floor(timer / (24 * 60 * 60));
+                let r = timer % (24 * 60 * 60);
+                hours = Math.floor(r / 3600);
+                r %= 3600;
+                minutes = Math.floor(r / 60);
+                seconds = r % 60;
+
+                hours = hours < 10 ? "0" + hours : hours;
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                display.textContent = days + ":" + hours + ":" + minutes + ":" + seconds;
+
+                if (--timer < 0) timer = duration;
+            }
+
+            // Run immediately so we don't see placeholders
+            update();
+            setInterval(update, 1000);
+        }
+
+        window.onload = function () {
+            // Start countdowns from 3 days and 7 days
+            startTimer(259200, document.getElementById('timer1'));
+            startTimer(604800, document.getElementById('timer2'));
+        };
+
+        function showError() {
+            document.getElementById('fake-modal').style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('fake-modal').style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>

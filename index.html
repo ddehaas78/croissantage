@@ -6,15 +6,13 @@
     <title>Pwnd hub - Hot Videos Internationally (Educational)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto:wght@400;500&display=swap">
     <style>
-        /* Base styles matching the screenshot */
         body {
             background-color: #0d0d0d;
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', Arial, sans-serif;
             color: #d1d1d1;
         }
-        
-        /* Specific element colors */
         .ph-orange-bg {
             background-color: #ff9300;
         }
@@ -28,17 +26,17 @@
             background-color: #1a1a1a;
         }
 
-        /* Logo styling */
         .logo-box {
             background-color: #ff9300;
             color: black;
             border-radius: 4px;
-            padding: 0 4px;
+            padding: 0 6px;
             margin-left: 2px;
-            font-weight: bold;
+            font-family: 'Oswald', sans-serif;
+            font-weight: 700;
+            letter-spacing: 0.5px;
         }
 
-        /* Navigation Styles */
         .nav-link {
             text-decoration: none;
             color: #d1d1d1;
@@ -57,7 +55,6 @@
             color: white;
         }
 
-        /* Button Styles */
         .btn-premium {
             background-color: #ff9300;
             color: black;
@@ -86,10 +83,9 @@
             color: white;
         }
 
-        /* Video Card Styles */
         .video-card {
             transition: transform 0.2s;
-            background-color: #1a1a1a; /* Needed for card feel */
+            background-color: #1a1a1a;
         }
         .video-card:hover {
             transform: scale(1.02);
@@ -104,25 +100,43 @@
             position: absolute;
             bottom: 5px;
             right: 5px;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.8);
             color: white;
-            font-size: 12px;
-            padding: 1px 4px;
-            border-radius: 2px;
+            font-size: 11px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        .video-card .card-menu {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+        .video-card:hover .card-menu {
+            opacity: 1;
         }
         .hd-badge {
-            background-color: #ff9300; /* Orange background for HD/4K */
-            color: black;
-            font-size: 10px;
-            padding: 1px 3px;
+            background-color: transparent;
+            border: 1px solid #ff9300;
+            color: #ff9300;
+            font-size: 9px;
+            padding: 1px 4px;
             border-radius: 2px;
             font-weight: bold;
             margin-left: 5px;
-            display: inline-block;
-            vertical-align: middle;
         }
 
-        /* Pagination Styles */
         .pagination-item {
             padding: 5px 10px;
             margin: 0 2px;
@@ -136,7 +150,6 @@
             color: black;
         }
 
-        /* --- ADVERTISEMENT STYLING --- */
         .ad-sidebar {
             width: 300px;
             flex-shrink: 0;
@@ -215,11 +228,8 @@
 
             <div class="hidden md:flex flex-grow max-w-2xl mx-6 relative">
                 <input type="text" placeholder="Search videos..." class="w-full bg-black text-gray-300 py-2 px-4 rounded-l-sm focus:outline-none focus:ring-1 focus:ring-ph-orange border border-transparent focus:border-ph-orange">
-                <button class="bg-black text-gray-400 px-5 rounded-r-sm hover:text-white border-t border-r border-b border-transparent hover:border-gray-700">
+                <button class="ph-orange-bg text-black px-5 rounded-r-sm hover:opacity-90 font-bold">
                     <i class="fas fa-search"></i>
-                </button>
-                <button class="absolute right-14 top-2 text-gray-400 hover:text-white">
-                    <i class="fas fa-camera"></i>
                 </button>
             </div>
 
@@ -236,12 +246,12 @@
         <div class="max-w-7xl mx-auto px-2">
             <div class="flex items-center overflow-x-auto whitespace-nowrap scrollbar-hide">
                 <a href="#" class="nav-link active"><i class="fas fa-home mr-1"></i> Home</a>
-                <a href="html/1.html" class="nav-link">Videos</a>
-                <a href="html/2.html" class="nav-link">Categories</a>
-                <a href="html/3.html" class="nav-link">Live Cams</a>
-                <a href="html/4.html" class="nav-link">Pornstars</a>
-                <a href="html/5.html" class="nav-link">Community</a>
-                <a href="html/6.html" class="nav-link">Photos</a>
+                <a href="html/1.html" class="nav-link"><i class="fas fa-play-circle mr-1"></i> Videos</a>
+                <a href="html/2.html" class="nav-link"><i class="fas fa-th-large mr-1"></i> Categories</a>
+                <a href="html/3.html" class="nav-link"><i class="fas fa-video mr-1"></i> Live Cams</a>
+                <a href="html/4.html" class="nav-link"><i class="fas fa-star mr-1"></i> Pwnstars</a>
+                <a href="html/5.html" class="nav-link"><i class="fas fa-users mr-1"></i> Community</a>
+                <a href="html/6.html" class="nav-link"><i class="fas fa-image mr-1"></i> Photos</a>
             </div>
         </div>
     </nav>
@@ -297,6 +307,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1587620962725-abab7fe55159?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
                         <div class="duration-badge">12:45</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                         <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200"></div>
                     </div>
                     <div class="p-2">
@@ -316,6 +327,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
                         <div class="duration-badge">08:30</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Hardcore CSS Debugging - UNCENSORED</h3>
@@ -334,6 +346,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
                         <div class="duration-badge">24:00</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Young Intern Gets DESTROYED by Senior Dev (Code Review)</h3>
@@ -351,6 +364,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
                         <div class="duration-badge">15:15</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Big Black Console (BBC) Compilation</h3>
@@ -369,6 +383,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
                         <div class="duration-badge">45:00</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Full Stack Action: Frontend AND Backend at the same time</h3>
@@ -387,6 +402,7 @@
                     <div class="thumbnail-container">
                         <img src="https://makandra.de/system/production/images/makandra/000/553/images/c67d9b53077bfc98c0cbc5aa07cdae3de84645a7/20_Jahre_Ruby_on_Rails_w1750.png?1720684903" alt="Coding" class="w-full h-full object-cover">
                         <div class="duration-badge">10:20</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Hot Ruby on Rails Action</h3>
@@ -403,6 +419,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1592609931095-54a2168ae893?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
                         <div class="duration-badge">05:45</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Quickie: Fix that Bug in 5 minutes</h3>
@@ -421,6 +438,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1629654297299-c8506221ca97?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Coding" class="w-full h-full object-cover">
                         <div class="duration-badge">18:00</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Naughty Node.js: Explaining the Event Loop</h3>
@@ -439,6 +457,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Hacker" class="w-full h-full object-cover">
                         <div class="duration-badge">07:30</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Gaping Security Hole Exploited by Teen</h3>
@@ -457,6 +476,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1550439062-609e1531270e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Data" class="w-full h-full object-cover">
                         <div class="duration-badge">14:20</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Injecting SQL into her tight Backend</h3>
@@ -475,6 +495,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Mobile Dev" class="w-full h-full object-cover">
                         <div class="duration-badge">22:00</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">My Wife Caught Me Using PHP (SHOCKING)</h3>
@@ -492,6 +513,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Code" class="w-full h-full object-cover">
                         <div class="duration-badge">31:10</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Two Microservices, One Cup (Integration Hell)</h3>
@@ -510,6 +532,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Matrix" class="w-full h-full object-cover">
                         <div class="duration-badge">03:50</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Solo Coder Touches Himself (Private Methods)</h3>
@@ -527,6 +550,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Server" class="w-full h-full object-cover">
                         <div class="duration-badge">55:00</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Massive Load Balancing (Stress Test Compilation)</h3>
@@ -545,6 +569,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Code Screen" class="w-full h-full object-cover">
                         <div class="duration-badge">19:45</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">She Handles My Exception (Try-Catch Block)</h3>
@@ -563,6 +588,7 @@
                     <div class="thumbnail-container">
                         <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Analytics" class="w-full h-full object-cover">
                         <div class="duration-badge">11:11</div>
+                        <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
                     </div>
                     <div class="p-2">
                         <h3 class="text-sm font-bold text-gray-200 leading-tight group-hover:text-ph-orange mb-1">Caught Leaking Memory in Public</h3>
