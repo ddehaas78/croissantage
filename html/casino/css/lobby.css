@@ -212,6 +212,43 @@
   padding: 28px 32px 60px;
 }
 
+.hero-banner{
+  position:relative;
+  overflow:hidden;
+  border-radius: 16px;
+  padding: 44px 32px;
+  margin-bottom: 34px;
+  background:
+    radial-gradient(ellipse at top left, rgba(212,175,55,.14), transparent 60%),
+    linear-gradient(160deg, var(--panel-light), var(--panel));
+  border: 1px solid rgba(212,175,55,.2);
+  text-align:center;
+}
+.hero-banner-glow{
+  position:absolute;
+  top:-120px; left:50%;
+  transform: translateX(-50%);
+  width:420px; height:420px;
+  border-radius:50%;
+  background: radial-gradient(circle, rgba(212,175,55,.16), transparent 70%);
+  pointer-events:none;
+}
+.hero-title{
+  position:relative;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 3.4vw, 2.6rem);
+  font-weight:700;
+  letter-spacing:.02em;
+  margin-bottom:10px;
+}
+.hero-subtitle{
+  position:relative;
+  color: var(--cream-dim);
+  font-size:.95rem;
+  max-width:480px;
+  margin: 0 auto;
+}
+
 .section-heading{
   font-family: var(--font-display);
   font-size:1.4rem;
