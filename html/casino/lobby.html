@@ -1,173 +1,23 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Croissantage - Lobby</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/lobby.css">
-    <link rel="stylesheet" href="css/roulette.css">
-    <link rel="stylesheet" href="css/blackjack.css">
-    <link rel="stylesheet" href="css/bar.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Casino Lobby</title>
+  <link rel="stylesheet" href="./lobby.css">
 </head>
 <body>
 
-    <!-- ===================== LOBBY ===================== -->
-    <div id="lobby">
+  <span id="info"></span>
+  <span id="text"></span>
 
-        <!-- Topbar -->
-        <header class="topbar">
-            <div class="topbar-logo">🥐 CROISSANTAGE</div>
-
-            <div class="topbar-right">
-                <div class="vip-badge">
-                    Niveau 1
-                    <div class="vip-bar"><div class="vip-bar-fill"></div></div>
-                </div>
-                <button class="btn btn-ghost recharge-btn" onclick="Wallet.add(500)">+ Recharger</button>
-                <div class="topbar-balance">
-                    <span class="coin"></span>
-                    <span data-wallet-balance>0</span>
-                </div>
-                <div class="avatar">🎩</div>
-            </div>
-        </header>
-
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <nav>
-                <button class="nav-item active" data-nav-target="lobby" data-nav="lobby">
-                    <span class="nav-icon">🏛️</span><span class="nav-label">Lobby</span>
-                </button>
-                <div class="nav-divider"></div>
-                <button class="nav-item" data-nav-target="slots-explorer" data-nav="slots-explorer">
-                    <span class="nav-icon">🧭</span><span class="nav-label">Ocean Explorer</span>
-                </button>
-                <button class="nav-item" data-nav-target="blackjack" data-nav="blackjack">
-                    <span class="nav-icon">🃏</span><span class="nav-label">Blackjack</span>
-                </button>
-                <button class="nav-item" data-nav-target="roulette" data-nav="roulette">
-                    <span class="nav-icon">🎡</span><span class="nav-label">Roulette</span>
-                </button>
-                <button class="nav-item" data-nav-target="bar" data-nav="bar">
-                    <span class="nav-icon">🍺</span><span class="nav-label">Le Bar</span>
-                </button>
-            </nav>
-        </aside>
-
-        <!-- Main area -->
-        <main class="main-area">
-
-            <div class="hero-banner">
-                <div class="hero-banner-glow"></div>
-                <h1 class="hero-title">Bienvenue au <span class="gold-text">Croissantage</span></h1>
-                <p class="hero-subtitle">La table est mise, les jetons vous attendent. Choisissez votre jeu.</p>
-            </div>
-
-            <h2 class="section-heading">🎲 Nos jeux</h2>
-            <div class="games-grid">
-
-                <div class="game-card" data-open-game="slots-explorer" data-nav="slots-explorer">
-                    <div class="game-card-art" style="background: linear-gradient(160deg, #0f2027, #2c5364);">⛵</div>
-                    <div class="game-card-info">
-                        <div class="game-card-name">Ocean Explorer</div>
-                        <div class="game-card-tag">Machine à sous</div>
-                    </div>
-                    <div class="game-card-play"><span>Jouer</span></div>
-                </div>
-
-                <div class="game-card" data-open-game="blackjack" data-nav="blackjack">
-                    <div class="game-card-art" style="background: linear-gradient(160deg, #004b23, #073b2c);">🃏</div>
-                    <div class="game-card-info">
-                        <div class="game-card-name">Blackjack</div>
-                        <div class="game-card-tag">Faites sauter la banque</div>
-                    </div>
-                    <div class="game-card-play"><span>Jouer</span></div>
-                </div>
-
-                <div class="game-card" data-open-game="roulette" data-nav="roulette">
-                    <div class="game-card-art" style="background: linear-gradient(160deg, #660000, #2b0a0a);">🎡</div>
-                    <div class="game-card-info">
-                        <div class="game-card-name">Roulette</div>
-                        <div class="game-card-tag">Faites vos jeux</div>
-                    </div>
-                    <div class="game-card-play"><span>Jouer</span></div>
-                </div>
-
-                <div class="game-card" data-open-game="bar" data-nav="bar">
-                    <div class="game-card-art" style="background: linear-gradient(160deg, #141e30, #243b55);">🍺</div>
-                    <div class="game-card-info">
-                        <div class="game-card-name">Le Bar</div>
-                        <div class="game-card-tag">Hydratation (ou pas)</div>
-                    </div>
-                    <div class="game-card-play"><span>Jouer</span></div>
-                </div>
-
-            </div>
-        </main>
+  <div id="tileset">
+    <div id="map"></div>
+    <div id="player">
+      <div id="player-body"></div>
     </div>
+  </div>
 
-    <!-- ===================== ECRANS DE JEU (à construire un par un) ===================== -->
-
-    <div id="slots-explorer" class="game-screen">
-        <div class="game-topbar">
-            <button class="game-back">← Retour au lobby</button>
-            <div class="game-title">🧭 Ocean Explorer</div>
-            <div class="topbar-balance"><span class="coin"></span><span data-wallet-balance>0</span></div>
-        </div>
-        <div class="game-body">
-            <div class="placeholder-note">
-                <span class="big">🧭 Ocean Explorer</span>
-                Cette machine à sous arrive bientôt. On la construit à la prochaine étape !
-            </div>
-        </div>
-    </div>
-
-    <div id="blackjack" class="game-screen">
-        <div class="game-topbar">
-            <button class="game-back">← Retour au lobby</button>
-            <div class="game-title">🃏 Blackjack</div>
-            <div class="topbar-balance"><span class="coin"></span><span data-wallet-balance>0</span></div>
-        </div>
-        <div class="game-body">
-            <div class="placeholder-note">
-                <span class="big">🃏 Blackjack</span>
-                La table de Blackjack arrive bientôt.
-            </div>
-        </div>
-    </div>
-
-    <div id="roulette" class="game-screen">
-        <div class="game-topbar">
-            <button class="game-back">← Retour au lobby</button>
-            <div class="game-title">🎡 Roulette</div>
-            <div class="topbar-balance"><span class="coin"></span><span data-wallet-balance>0</span></div>
-        </div>
-        <div class="game-body">
-            <!-- Rempli par js/roulette.js -->
-        </div>
-    </div>
-
-    <div id="bar" class="game-screen">
-        <div class="game-topbar">
-            <button class="game-back">← Retour au lobby</button>
-            <div class="game-title">🍺 Le Bar</div>
-            <div class="topbar-balance"><span class="coin"></span><span data-wallet-balance>0</span></div>
-        </div>
-        <div class="game-body">
-            <div class="placeholder-note">
-                <span class="big">🍺 Le Bar</span>
-                Le bar arrive bientôt.
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
-    <script src="js/wallet.js"></script>
-    <script src="js/navigation.js"></script>
-    <script src="js/roulette.js"></script>
-    <script src="js/blackjack.js"></script>
-    <script src="js/bar.js"></script>
+  <script src="./lobby.js"></script>
 </body>
 </html>

@@ -1,0 +1,258 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Press Start 2P", system-ui;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+:root {
+  --tile-size: 64px;
+  --map-x: 0;
+  --map-y: 0;
+  --moving-speed: 180ms;
+
+  /* --- Sprite du joueur (façon vieux Pokémon) --- */
+  /* --player-sprite-v : ligne du spritesheet = direction (0 bas, -1 haut, -2 gauche, -3 droite) */
+  /* --player-sprite-h : colonne du spritesheet = frame de marche (1, 0, -1, 0) */
+  --player-sprite-h: 0;
+  --player-sprite-v: 0;
+
+  --bg: #12070a;
+  --wall: #3a1420;
+  --wall-edge: #6e1f31;
+  --floor-a: #5c1a2b;
+  --floor-b: #4a1523;
+  --gold: #d4af37;
+  --gold-light: #f4d976;
+  --white: #f5ede0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at center, rgba(212,175,55,0.08) 0%, rgba(0,0,0,0) 70%);
+}
+
+#info {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--white);
+  color: #1a1a1a;
+  font-size: 10px;
+  line-height: 1.6;
+  padding: 10px 14px;
+  z-index: 100;
+  box-shadow: var(--gold) 0 0 0 3px inset, #1a1a1a 0 0 0 6px inset;
+  white-space: pre;
+  display: none;
+}
+#info.show { display: block; }
+
+#text {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  margin: auto;
+  max-width: 560px;
+  min-height: 64px;
+  background: var(--white);
+  color: #1a1a1a;
+  font-size: 11px;
+  line-height: 1.7;
+  padding: 14px 16px;
+  z-index: 100;
+  box-shadow: var(--gold) 0 0 0 3px inset, #1a1a1a 0 0 0 6px inset;
+  display: none;
+}
+#text.show { display: block; }
+
+#tileset {
+  position: relative;
+  width: var(--tile-size);
+  height: var(--tile-size);
+  margin: auto;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+#map {
+  position: absolute;
+  border-radius: 6px;
+  transition: all linear var(--moving-speed);
+  left: calc(var(--map-x) * -1px);
+  top: calc(var(--map-y) * -1px);
+  box-shadow: 0 0 0 6px var(--wall), 0 0 40px 10px rgba(0,0,0,0.6);
+}
+
+.tile {
+  position: absolute;
+  width: var(--tile-size);
+  height: var(--tile-size);
+}
+
+.tile.floor {
+  background-color: var(--floor-a);
+  background-image:
+    linear-gradient(45deg, var(--floor-b) 25%, transparent 25%, transparent 75%, var(--floor-b) 75%),
+    linear-gradient(45deg, var(--floor-b) 25%, transparent 25%, transparent 75%, var(--floor-b) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+}
+
+.tile.wall {
+  background-color: var(--wall);
+  box-shadow: inset 0 0 0 2px var(--wall-edge);
+}
+
+.tile.door {
+  background-color: #1c0d10;
+  box-shadow: inset 0 0 0 3px var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.tile.door .icon {
+  font-size: 28px;
+  filter: drop-shadow(0 0 4px rgba(0,0,0,0.6));
+  animation: bob 1.6s ease-in-out infinite;
+}
+
+.tile.door .label {
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: var(--gold-light);
+  background: #1a1a1a;
+  padding: 3px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.tile.deco {
+  background-color: var(--floor-a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tile.deco .icon {
+  font-size: 26px;
+  opacity: 0.85;
+}
+
+/* ============================================================
+   JOUEUR — spritesheet façon vieux Pokémon (GBA/DS)
+   ============================================================ */
+#player {
+  position: absolute;
+  left: calc(50% - var(--tile-size) / 2);
+  top: calc(50% - var(--tile-size) / 2);
+  width: var(--tile-size);
+  height: var(--tile-size);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+#player-body {
+  position: relative;
+  width: calc(var(--tile-size) - 16px);
+  height: var(--tile-size);
+  image-rendering: pixelated;
+
+  /* PLACEHOLDER : sprite Brendan (Pokémon Emerald) de ta démo de référence.
+     Pour utiliser ton propre spritesheet : mets le fichier dans
+     assets/sprites/player.png et remplace la ligne ci-dessous par :
+     background-image: url("./assets/sprites/player.png"); */
+  background-image: url("https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/47980ced-5dfb-4052-b3ea-e111b91c9ef8/deammik-aa7dd0c2-dc3a-4886-a76e-9883ee55ef4e.png/v1/fill/w_370,h_254/_wip__emerald_brendan_dppt_hgss_gen_4_sprite_sheet_by_hyo_oppa_deammik-fullview.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MjU0IiwicGF0aCI6IlwvZlwvNDc5ODBjZWQtNWRmYi00MDUyLWIzZWEtZTExMWI5MWM5ZWY4XC9kZWFtbWlrLWFhN2RkMGMyLWRjM2EtNDg4Ni1hNzZlLTk4ODNlZTU1ZWY0ZS5wbmciLCJ3aWR0aCI6Ijw9MzcwIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmltYWdlLm9wZXJhdGlvbnMiXX0.wFNgpfl5jYzlEVYvoorgJJEHEwoSZJ13FBRzj9k8gYI");
+
+  --original-h: 371;
+  --original-v: 254;
+  --sprite-size-local: 32;
+  background-size:
+    calc(var(--original-h) * (var(--tile-size) / var(--sprite-size-local)))
+    calc(var(--original-v) * (var(--tile-size) / var(--sprite-size-local)));
+
+  --x: calc(-64px + (var(--player-sprite-h) * 50px));
+  --y: calc((65px * var(--player-sprite-v)) - 2px);
+  background-position: var(--x) var(--y);
+
+  transform: scale(1.35);
+  filter: drop-shadow(0 4px 3px rgba(0,0,0,0.55));
+}
+
+#player.fade-out { animation: fadeOut 200ms forwards; }
+#player.fade-in  { animation: fadeIn 250ms forwards; }
+@keyframes fadeOut { to { opacity: 0; transform: scale(0.7); } }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+
+#dpad {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  width: 150px;
+  height: 150px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 4px;
+  z-index: 100;
+}
+#dpad button {
+  background: rgba(245,237,224,0.9);
+  border: none;
+  box-shadow: var(--gold) 0 0 0 2px inset;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+#dpad button:active { background: var(--gold-light); }
+#dpad button[data-dir="up"]    { grid-column: 2; grid-row: 1; }
+#dpad button[data-dir="left"]  { grid-column: 1; grid-row: 2; }
+#dpad button[data-dir="down"]  { grid-column: 2; grid-row: 3; }
+#dpad button[data-dir="right"] { grid-column: 3; grid-row: 2; }
+
+@media (min-width: 900px) {
+  #dpad { opacity: 0.55; transition: opacity 200ms; }
+  #dpad:hover { opacity: 1; }
+}
+
+/* Pathfinding (clic/tap) */
+.player-target {
+  width: var(--tile-size);
+  height: var(--tile-size);
+  background-color: transparent;
+  box-shadow: var(--gold-light) 0 0 0 3px inset, rgba(244,217,118,0.35) 0 0 0 6px inset;
+  position: absolute;
+}
+.player-path {
+  --size: 24px;
+  width: var(--size);
+  height: var(--size);
+  margin: calc((var(--tile-size) - var(--size)) / 2);
+  background-color: transparent;
+  box-shadow: var(--gold-light) 0 0 0 3px inset, rgba(244,217,118,0.3) 0 0 0 40px inset;
+  position: absolute;
+}
