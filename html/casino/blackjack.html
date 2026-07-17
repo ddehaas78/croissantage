@@ -4,14 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Blackjack - Casino</title>
-  <link rel="stylesheet" href="./game-stub.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./main.css">
+  <link rel="stylesheet" href="./game-page.css">
+  <link rel="stylesheet" href="./blackjack.css">
 </head>
 <body>
-  <div class="house">
-    <div class="icon">🃏</div>
-    <h1>Blackjack</h1>
-    <p>La table se prépare... le jeu arrive bientôt ici.</p>
-    <a class="back" href="./lobby.html">&larr; Retour au lobby</a>
+
+  <div class="game-topbar">
+    <a class="game-back" href="./lobby.html">&larr; Retour au lobby</a>
+    <div class="game-title">🃏 Blackjack</div>
+    <div class="game-topbar-right">
+      <button class="btn btn-ghost recharge-btn" onclick="Wallet.add(500)">+ Recharger</button>
+      <div class="topbar-balance">
+        <span class="coin"></span>
+        <span data-wallet-balance>0</span>
+      </div>
+    </div>
   </div>
+
+  <div id="blackjack">
+    <div class="game-body"></div>
+  </div>
+
+  <script src="./wallet.js"></script>
+  <script src="./blackjack.js"></script>
 </body>
 </html>
