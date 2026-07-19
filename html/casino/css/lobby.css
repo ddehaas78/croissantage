@@ -11,8 +11,8 @@
 
 :root {
   --tile-size: 64px;
-  --map-x: 0;
-  --map-y: 0;
+  --player-x: 0;
+  --player-y: 0;
   --moving-speed: 180ms;
 
   /* --- Sprite du joueur (façon vieux Pokémon) --- */
@@ -34,7 +34,7 @@
 html, body {
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow: auto;
   background: var(--bg);
   background-image:
     radial-gradient(ellipse at center, rgba(212,175,55,0.08) 0%, rgba(0,0,0,0) 70%);
@@ -77,20 +77,18 @@ html, body {
 
 #tileset {
   position: relative;
-  width: var(--tile-size);
-  height: var(--tile-size);
   margin: auto;
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
+  /* largeur/hauteur posées dynamiquement en JS pour matcher la taille réelle de la map */
 }
 
 #map {
   position: absolute;
+  left: 0;
+  top: 0;
   border-radius: 6px;
-  transition: all linear var(--moving-speed);
-  left: calc(var(--map-x) * -1px);
-  top: calc(var(--map-y) * -1px);
   box-shadow: 0 0 0 6px var(--wall), 0 0 40px 10px rgba(0,0,0,0.6);
 }
 
@@ -148,6 +146,11 @@ html, body {
   50% { transform: translateY(-4px); }
 }
 
+.tile.door.locked .icon { animation: none; filter: grayscale(1) opacity(0.6); }
+.tile.door.locked .label { color: var(--cream-dim, #c9bfa8); opacity: 0.75; }
+.tile.roof.locked { filter: grayscale(1) brightness(0.75); }
+.tile.facade.locked { filter: grayscale(1) brightness(0.85); }
+
 .tile.deco {
   background-color: var(--floor-a);
   display: flex;
@@ -164,10 +167,11 @@ html, body {
    ============================================================ */
 #player {
   position: absolute;
-  left: calc(50% - var(--tile-size) / 2);
-  top: calc(50% - var(--tile-size) / 2);
+  left: calc(var(--player-x) * 1px);
+  top: calc(var(--player-y) * 1px);
   width: var(--tile-size);
   height: var(--tile-size);
+  transition: left linear var(--moving-speed), top linear var(--moving-speed);
   z-index: 2;
   display: flex;
   align-items: center;

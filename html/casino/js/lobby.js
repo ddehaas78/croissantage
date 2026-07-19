@@ -13,6 +13,7 @@ const info = document.getElementById('info');
 const text = document.getElementById('text');
 const player = document.getElementById('player');
 const mapEl = document.getElementById('map');
+const tilesetEl = document.getElementById('tileset');
 
 const TILE = 64;
 
@@ -31,17 +32,27 @@ GAMES.forEach((g, i) => {
   g.facadeCode = 30 + i; // 30-33
 });
 
-/* ---------- Lieux annexes (petite enseigne à plat, sans étage) ---------- */
-/* Toutes les cases de la largeur sont des portes visibles (bordure + icône + label). */
-const EXTRAS = [
-  { key: "bar", name: "Bar", icon: "🍸", href: "./html/bar.html", x: 10, y: 10, width: 2 },
+/* ---------- Bâtiments annexes (même gabarit "maison" 3x2 que les jeux) ---------- */
+/* future-left / future-right : rangée à part, plus proches du centre que les jeux.
+   future-bottom-1 / bar / future-bottom-2 : rangée du bas, bar centré. */
+const EXTRA_HOUSES = [
+  { key: "future-left",     name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 2,  y: 6 },
+  { key: "future-right",    name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 22, y: 6 },
+  { key: "future-bottom-1", name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 7,  y: 8 },
+  { key: "bar",             name: "Bar",                icon: "🍸", href: "./html/bar.html",  x: 12, y: 8 },
+  { key: "future-bottom-2", name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 17, y: 8 },
 ];
-EXTRAS.forEach((e, i) => {
-  e.doorCode = 40 + i; // 40-...
+EXTRA_HOUSES.forEach((e, i) => {
+  e.doorCode = 40 + i;   // 40-44
+  e.roofCode = 50 + i;   // 50-54
+  e.facadeCode = 60 + i; // 60-64
 });
 
-/* Position (colonne de départ, largeur 3) de chaque maison sur la grille */
-const HOUSE_X = [2, 7, 12, 17];
+const ALL_HOUSES = [...GAMES, ...EXTRA_HOUSES];
+
+/* Position (colonne de départ, largeur 3) de chaque maison de jeu sur la grille.
+   Symétrique autour de la colonne centrale (13) : 0<->3, 1<->2 */
+const HOUSE_X = [4, 9, 15, 20];
 
 function buildGrid(width, height) {
   const grid = [];
@@ -56,35 +67,67 @@ function buildGrid(width, height) {
   return grid;
 }
 
-const WIDTH = 22, HEIGHT = 13;
+const WIDTH = 27, HEIGHT = 13;
 const colliders = buildGrid(WIDTH, HEIGHT);
 
-/* ---------- Construction des maisons ---------- */
-GAMES.forEach((g, i) => {
-  const xs = HOUSE_X[i];
-  g.x = xs; g.y = 3; g.width = 3;
-  // toit (rangée y=2, 3 tuiles)
-  colliders[2][xs]     = g.roofCode;
-  colliders[2][xs + 1] = g.roofCode;
-  colliders[2][xs + 2] = g.roofCode;
-  // façade + porte (rangée y=3)
-  colliders[3][xs]     = g.facadeCode;
-  colliders[3][xs + 1] = g.doorCode;
-  colliders[3][xs + 2] = g.facadeCode;
+/* ---------- Construction des maisons (toutes en 3x2 : toit + façade/porte) ---------- */
+function buildHouse(house, xs, y) {
+  house.x = xs; house.y = y; house.width = 3;
+  // toit (3 tuiles)
+  colliders[y][xs]     = house.roofCode;
+  colliders[y][xs + 1] = house.roofCode;
+  colliders[y][xs + 2] = house.roofCode;
+  // façade + porte
+  colliders[y + 1][xs]     = house.facadeCode;
+  colliders[y + 1][xs + 1] = house.doorCode;
+  colliders[y + 1][xs + 2] = house.facadeCode;
+}
+GAMES.forEach((g, i) => buildHouse(g, HOUSE_X[i], 1));
+EXTRA_HOUSES.forEach(e => {
+  if (e.key === "bar") return; // le bar a une disposition inversée, gérée à part ci-dessous
+  buildHouse(e, e.x, e.y);
 });
+
+/* Bar : entrée sur la rangée du HAUT (accès direct depuis le boulevard, par un
+   chemin qui descend d'en haut), avec une rangée de façades pleine en dessous
+   pour former un vrai bâtiment 3x2. */
+{
+  const bar = EXTRA_HOUSES.find(e => e.key === "bar");
+  bar.width = 3;
+  colliders[bar.y][bar.x]     = bar.facadeCode;
+  colliders[bar.y][bar.x + 1] = bar.doorCode;
+  colliders[bar.y][bar.x + 2] = bar.facadeCode;
+  colliders[bar.y + 1][bar.x]     = bar.facadeCode;
+  colliders[bar.y + 1][bar.x + 1] = bar.facadeCode;
+  colliders[bar.y + 1][bar.x + 2] = bar.facadeCode;
+}
 
 /* ---------- Allées en tapis rouge ---------- */
 const CARPET = 2;
-const doorXs = GAMES.map((g, i) => HOUSE_X[i] + 1); // [3, 8, 13, 18]
+const doorXs = GAMES.map((g, i) => HOUSE_X[i] + 1); // [5, 10, 16, 21]
 
-// une allée verticale sous chaque porte
+// une allée verticale sous chaque porte des jeux (jusqu'à la rangée du bas des maisons annexes)
 doorXs.forEach(dx => {
-  for (let y = 4; y <= 8; y++) colliders[y][dx] = CARPET;
+  for (let y = 3; y <= 7; y++) colliders[y][dx] = CARPET;
 });
 // un grand boulevard horizontal qui relie toutes les allées
-for (let x = 2; x <= 19; x++) colliders[6][x] = CARPET;
-// une allée centrale qui redescend vers le point de spawn
-for (let y = 6; y <= 9; y++) colliders[y][10] = CARPET;
+for (let x = 2; x <= 24; x++) colliders[5][x] = CARPET;
+
+// prolongement des allées de Blackjack (5) et Machines à sous (21) jusqu'à la rangée
+// des maisons latérales, pour rejoindre future-left / future-right
+colliders[8][5] = CARPET;
+colliders[8][21] = CARPET;
+for (let x = 3; x <= 4; x++) colliders[8][x] = CARPET;   // vers future-left (porte en x=3)
+for (let x = 22; x <= 23; x++) colliders[8][x] = CARPET; // vers future-right (porte en x=23)
+
+// prolongement des allées de Roulette (10) et Poker (16) jusqu'à la rangée du bas
+for (let y = 8; y <= 10; y++) { colliders[y][10] = CARPET; colliders[y][16] = CARPET; }
+// petits raccords pour rejoindre les portes de future-bottom-1 (8) et future-bottom-2 (18)
+for (let x = 8; x <= 9; x++) colliders[10][x] = CARPET;   // vers future-bottom-1
+for (let x = 17; x <= 18; x++) colliders[10][x] = CARPET; // vers future-bottom-2
+
+// Accès direct au Bar depuis le boulevard central (entrée par le dessus, comme avant)
+for (let y = 6; y <= 7; y++) colliders[y][13] = CARPET;
 
 /* ---------- Décorations ---------- */
 const DECO = {
@@ -93,17 +136,12 @@ const DECO = {
   FOUNTAIN: 5,
 };
 const decoSpots = [
-  [5, 8, DECO.TREE], [9, 4, DECO.TREE], [15, 4, DECO.TREE], [19, 8, DECO.TREE],
-  [6, 10, DECO.TREE], [16, 10, DECO.TREE],
-  [9, 5, DECO.LAMP], [11, 5, DECO.LAMP],
-  [10, 5, DECO.FOUNTAIN],
+  [2, 3, DECO.TREE], [7, 3, DECO.TREE], [19, 3, DECO.TREE], [24, 3, DECO.TREE],
+  [5, 11, DECO.TREE], [21, 11, DECO.TREE],
+  [12, 4, DECO.LAMP], [14, 4, DECO.LAMP],
+  [13, 4, DECO.FOUNTAIN],
 ];
 decoSpots.forEach(([x, y, code]) => { colliders[y][x] = code; });
-
-/* ---------- Lieux annexes sur la grille ---------- */
-EXTRAS.forEach(e => {
-  for (let dx = 0; dx < e.width; dx++) colliders[e.y][e.x + dx] = e.doorCode;
-});
 
 /* ---------- Table des types de tuiles ---------- */
 const tileTypes = {
@@ -114,32 +152,29 @@ const tileTypes = {
   [DECO.LAMP]:     { collide: true, kind: "deco", icon: "💡" },
   [DECO.FOUNTAIN]: { collide: true, kind: "deco", icon: "⛲" },
 };
-GAMES.forEach(g => {
-  tileTypes[g.doorCode] = {
-    collide: false, kind: "door", house: g.key,
-    icon: g.icon, label: g.name, text: `Entrée : ${g.name}`,
-    effect: () => enterHouse(g.href),
+function registerHouseTypes(house) {
+  tileTypes[house.doorCode] = {
+    collide: false, kind: "door", house: house.key, locked: !!house.locked,
+    icon: house.icon, label: house.name,
+    text: house.locked ? `${house.name}...` : `Entrée : ${house.name}`,
+    effect: house.locked ? null : () => enterHouse(house.href),
   };
-  tileTypes[g.roofCode] = {
-    collide: true, kind: "roof", house: g.key, icon: g.icon,
+  tileTypes[house.roofCode] = {
+    collide: true, kind: "roof", house: house.key, icon: house.icon, locked: !!house.locked,
   };
-  tileTypes[g.facadeCode] = {
-    collide: true, kind: "facade", house: g.key,
+  tileTypes[house.facadeCode] = {
+    collide: true, kind: "facade", house: house.key, locked: !!house.locked,
   };
-});
-EXTRAS.forEach(e => {
-  tileTypes[e.doorCode] = {
-    collide: false, kind: "door", house: e.key,
-    icon: e.icon, label: e.name, text: `Entrée : ${e.name}`,
-    effect: () => enterHouse(e.href),
-  };
-});
+}
+ALL_HOUSES.forEach(registerHouseTypes);
 
 /* ---------- Rendu de la grille ---------- */
 mapEl.style.width = `${WIDTH * TILE}px`;
 mapEl.style.height = `${HEIGHT * TILE}px`;
+tilesetEl.style.width = `${WIDTH * TILE}px`;
+tilesetEl.style.height = `${HEIGHT * TILE}px`;
 
-const ALL_PLACES = [...GAMES, ...EXTRAS];
+const ALL_PLACES = ALL_HOUSES;
 
 for (let y = 0; y < HEIGHT; y++) {
   for (let x = 0; x < WIDTH; x++) {
@@ -148,6 +183,7 @@ for (let y = 0; y < HEIGHT; y++) {
     const div = document.createElement('div');
     div.className = `tile ${type.kind}`;
     if (type.house) div.classList.add(`house-${type.house}`);
+    if (type.locked) div.classList.add('locked');
     div.style.left = `${x * TILE}px`;
     div.style.top = `${y * TILE}px`;
 
@@ -166,7 +202,7 @@ for (let y = 0; y < HEIGHT; y++) {
 
 
 /* ---------- État du joueur ---------- */
-const SPAWN_DEFAULT = { x: 10, y: 6 };
+const SPAWN_DEFAULT = { x: 13, y: 5 };
 const POS_KEY = 'croissantage_lobby_pos';
 
 function loadSavedPos() {
@@ -211,18 +247,18 @@ const directions = {
 const spriteFrames = [1, 0, -1, 0];
 let currSprite = 1;
 
-function updateMapPosition() {
-  root.style.setProperty('--map-x', `${currPos.x * TILE}`);
-  root.style.setProperty('--map-y', `${currPos.y * TILE}`);
+function updatePlayerPosition() {
+  root.style.setProperty('--player-x', `${currPos.x * TILE}`);
+  root.style.setProperty('--player-y', `${currPos.y * TILE}`);
 }
 
-// Placement initial sans animation : sinon la carte glisse depuis le
-// centre par défaut jusqu'à la position restaurée (effet "téléportation").
-mapEl.style.transition = 'none';
-updateMapPosition();
-void mapEl.offsetHeight; // force le navigateur à appliquer la position avant de réactiver la transition
+// Placement initial sans animation : sinon le joueur glisse depuis le
+// spawn par défaut jusqu'à la position restaurée (effet "téléportation").
+player.style.transition = 'none';
+updatePlayerPosition();
+void player.offsetHeight; // force le navigateur à appliquer la position avant de réactiver la transition
 requestAnimationFrame(() => {
-  mapEl.style.transition = '';
+  player.style.transition = '';
 });
 setSpriteDirection('down');
 
@@ -322,7 +358,7 @@ function move() {
 
   currPos.x += axis.x;
   currPos.y += axis.y;
-  updateMapPosition();
+  updatePlayerPosition();
   savePos();
 
   if (next.text) showText(next.text); else showText(null);
@@ -506,8 +542,8 @@ function followPath(path) {
 document.getElementById('tileset').addEventListener('click', (e) => {
   if (transitioning) return;
   const rect = document.getElementById('tileset').getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left) / TILE) + currPos.x;
-  const y = Math.floor((e.clientY - rect.top) / TILE) + currPos.y;
+  const x = Math.floor((e.clientX - rect.left) / TILE);
+  const y = Math.floor((e.clientY - rect.top) / TILE);
   if (x < 0 || y < 0 || y >= HEIGHT || x >= WIDTH) return;
 
   if (followUpdate) { clearInterval(followUpdate); followUpdate = null; }
