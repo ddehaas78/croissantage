@@ -38,7 +38,7 @@ GAMES.forEach((g, i) => {
 const EXTRA_HOUSES = [
   { key: "future-left",     name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 2,  y: 6 },
   { key: "future-right",    name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 22, y: 6 },
-  { key: "future-bottom-1", name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 7,  y: 8 },
+  { key: "baccara",         name: "Baccara",            icon: "🎴", href: "./html/baccara.html", x: 7,  y: 8 },
   { key: "bar",             name: "Bar",                icon: "🍸", href: "./html/bar.html",  x: 12, y: 8 },
   { key: "future-bottom-2", name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 17, y: 8 },
 ];

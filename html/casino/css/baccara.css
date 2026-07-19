@@ -1,0 +1,326 @@
+/* baccara.css — Baccara, thème Croissantage */
+
+/* Classes de message génériques (au cas où un autre fichier ne les définit pas déjà) */
+.game-msg {
+  text-align: center;
+  min-height: 20px;
+  font-size: 0.85rem;
+  color: var(--cream-dim);
+}
+.msg-good { color: var(--gold-bright); font-weight: 600; }
+.msg-bad { color: #e0685f; font-weight: 600; }
+.msg-warn { color: #e8c15a; font-weight: 600; }
+
+.bc-wrap{
+  max-width: 1150px;
+  margin: 0 auto;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  gap:20px;
+  flex-wrap:wrap;
+}
+
+/* ---------- Table ---------- */
+.bc-table{
+  position:relative;
+  flex: 1 1 620px;
+  max-width: 760px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap: 14px;
+  padding: 48px 40px 40px;
+  border-radius: 220px 220px 60px 60px / 130px 130px 50px 50px;
+  border: 6px solid var(--gold);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(244,217,118,.12), transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(0,0,0,.35), transparent 60%),
+    linear-gradient(160deg, var(--emerald), var(--emerald) 40%, #0a3a2f);
+  box-shadow:
+    inset 0 0 0 3px rgba(212,175,55,.35),
+    inset 0 0 60px rgba(0,0,0,.55),
+    0 18px 40px rgba(0,0,0,.55);
+}
+.bc-table::before{
+  content:'BACCARA';
+  position:absolute;
+  top: 18px;
+  left:50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-weight:800;
+  letter-spacing:.35em;
+  font-size:.85rem;
+  color: rgba(244,217,118,.5);
+  pointer-events:none;
+}
+
+.bc-hand-row{
+  width:100%;
+  display:flex;
+  flex-direction:row;
+  align-items:flex-start;
+  justify-content:space-evenly;
+  gap:20px;
+  flex-wrap:wrap;
+  padding-top: 6px;
+}
+
+.bc-hand{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  flex: 1 1 200px;
+  min-width: 200px;
+  padding: 14px 10px;
+  border-radius: 16px;
+  background: rgba(0,0,0,.18);
+  border: 1px dashed rgba(212,175,55,.35);
+}
+
+.bc-hand-label{
+  font-family: var(--font-display);
+  font-weight:700;
+  letter-spacing:.04em;
+  color: var(--gold-bright);
+  font-size:.95rem;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.bc-hand-total{
+  min-width: 26px;
+  text-align:center;
+  padding: 2px 8px;
+  border-radius:999px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid var(--gold-dim);
+  color: var(--cream);
+  font-size:.85rem;
+}
+
+.bc-hand-cards{
+  display:flex;
+  gap:12px;
+  min-height: 116px;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+/* ---------- Cartes ---------- */
+.bc-card{
+  width:76px;
+  height:110px;
+  border-radius:9px;
+  background: linear-gradient(160deg, #fdfaf3, #e9e0c8);
+  border: 2px solid var(--gold-dim);
+  box-shadow: 0 4px 10px rgba(0,0,0,.5);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  font-family: var(--font-display);
+  font-weight:800;
+  line-height:1;
+  opacity:0;
+  transform: translateY(-16px) rotate(-6deg) scale(.9);
+  animation: bcCardIn .4s ease forwards;
+}
+.bc-card .bc-rank{ font-size:1.7rem; }
+.bc-card .bc-suit{ font-size:1.8rem; margin-top:5px; }
+.bc-card.red{ color:#a3202a; }
+.bc-card.black{ color:#1c1712; }
+@keyframes bcCardIn{
+  to{ opacity:1; transform: translateY(0) rotate(0) scale(1); }
+}
+
+/* ---------- Zones de mise, directement sur le feutre ---------- */
+.bc-zones{
+  width:100%;
+  display:flex;
+  align-items:stretch;
+  border-radius: 16px;
+  overflow:hidden;
+  border: 2px solid rgba(244,217,118,.55);
+  box-shadow: inset 0 0 20px rgba(0,0,0,.35);
+}
+
+.bc-zone{
+  position:relative;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding: 16px 10px 22px;
+  min-height: 84px;
+  background: rgba(0,0,0,.12);
+  border-right: 1px solid rgba(244,217,118,.4);
+  transition: background .15s ease, transform .1s ease;
+}
+.bc-zone:last-child{ border-right:none; }
+.bc-zone:hover:not(:disabled){ background: rgba(244,217,118,.1); }
+.bc-zone:disabled{ opacity:.55; cursor:not-allowed; }
+
+.bc-zone-label{
+  font-family: var(--font-display);
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  font-size:1rem;
+  color: var(--cream);
+}
+.bc-zone-odds{
+  font-size:.66rem;
+  color: rgba(243,233,210,.7);
+}
+
+.bc-zone-tie{ flex:.7; }
+.bc-zone-tie .bc-zone-label{ color: var(--gold-bright); }
+
+.bc-zone-player .bc-zone-label{ color: #8fd6c4; }
+.bc-zone-banker .bc-zone-label{ color: #e79aa0; }
+
+.bc-zone.active{
+  background: linear-gradient(180deg, rgba(244,217,118,.22), rgba(244,217,118,.06));
+}
+.bc-zone.active::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  box-shadow: inset 0 0 0 2px var(--gold-bright), inset 0 0 24px rgba(244,217,118,.25);
+  pointer-events:none;
+}
+.bc-zone.active .bc-zone-label{ color: var(--gold-bright); }
+
+/* Jeton misé, posé sur la zone choisie */
+.bc-zone-chip{
+  position:absolute;
+  bottom: -14px;
+  left:50%;
+  transform: translateX(-50%) scale(0);
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: repeating-conic-gradient(var(--cream) 0deg 22.5deg, transparent 22.5deg 45deg);
+  border: 2px solid var(--gold-dim);
+  box-shadow: 0 4px 10px rgba(0,0,0,.5);
+  font-family: var(--font-display);
+  font-weight:800;
+  font-size:.62rem;
+  color:#241a08;
+  isolation:isolate;
+  transition: transform .25s cubic-bezier(.34,1.6,.64,1);
+}
+.bc-zone-chip::after{
+  content:'';
+  position:absolute;
+  inset:4px;
+  border-radius:50%;
+  background: radial-gradient(circle at 35% 30%, var(--gold-bright), var(--gold) 55%, var(--gold-dim));
+  z-index:-1;
+}
+.bc-zone-chip.show{ transform: translateX(-50%) scale(1); }
+
+/* Rangée des paires (side bet séparé, sous les 3 zones principales) */
+.bc-zones-pairs{
+  margin-top: -6px;
+}
+.bc-zones-pairs .bc-zone{
+  min-height: 60px;
+  padding: 12px 10px 18px;
+}
+.bc-zones-pairs .bc-zone-label{ font-size:.8rem; }
+.bc-zones-pairs .bc-zone-odds{ font-size:.6rem; }
+.bc-zone-player-pair .bc-zone-label{ color: #8fd6c4; }
+.bc-zone-banker-pair .bc-zone-label{ color: #e79aa0; }
+
+/* ---------- Panneau latéral (montant + actions) ---------- */
+.bc-side-panel{
+  width: 100%;
+  max-width: 420px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  background: linear-gradient(160deg, var(--panel-light), var(--panel));
+  border: 1px solid rgba(212,175,55,.25);
+  border-radius:16px;
+  padding: 20px 18px;
+}
+
+.bc-panel-title{
+  font-family: var(--font-display);
+  font-weight:700;
+  color: var(--gold-bright);
+  font-size:.8rem;
+  letter-spacing:.03em;
+  margin-top:4px;
+}
+.bc-panel-title:first-child{ margin-top:0; }
+
+.bc-mult-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.bc-mult-btn{
+  flex: 1 1 auto;
+  min-width:40px;
+  padding:8px 6px;
+  border-radius:8px;
+  border:1px solid var(--gold-dim);
+  background: var(--panel-light);
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-weight:700;
+  font-size:.72rem;
+}
+.bc-mult-btn:hover:not(:disabled){ border-color: var(--gold-bright); color: var(--gold-bright); }
+.bc-mult-btn:disabled{ opacity:.5; cursor:not-allowed; }
+.bc-mult-btn.active{
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold) 70%, var(--gold-dim));
+  color:#241a08;
+  border-color: var(--gold-bright);
+}
+
+.bc-amount-display{
+  font-family: var(--font-display);
+  color: var(--gold-bright);
+  font-size:.85rem;
+  text-align:center;
+  padding: 6px 0;
+}
+
+.bc-deal-btn, .bc-new-round-btn{
+  width:100%;
+  padding: 12px;
+  font-size:.85rem;
+}
+
+@media (max-width: 760px){
+  .bc-table{
+    border-radius: 40px;
+    padding: 40px 18px 28px;
+  }
+  .bc-table::before{ font-size:.72rem; letter-spacing:.25em; }
+  .bc-hand-row{ flex-direction:column; align-items:center; }
+  .bc-hand{ width:100%; max-width:340px; }
+  .bc-zone{ padding: 12px 6px 20px; min-height:68px; }
+  .bc-zone-label{ font-size:.82rem; }
+  .bc-zone-odds{ font-size:.58rem; }
+}
+
+@media (max-width: 620px){
+  .bc-card{ width:56px; height:82px; }
+  .bc-card .bc-rank{ font-size:1.15rem; }
+  .bc-card .bc-suit{ font-size:1.25rem; }
+  .bc-zone-chip{ width:32px; height:32px; font-size:.55rem; bottom:-10px; }
+}
