@@ -261,102 +261,19 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, .5);
 }
 
-/* --- Barman stylisé --- */
+/* --- Barman (vraie image, plus de barman dessiné en CSS) --- */
 .bar-bartender {
   position: relative;
-  width: 110px;
-  height: 150px;
-  margin: 10px auto -14px;
+  display: flex;
+  justify-content: center;
+  margin: 6px auto -18px;
   z-index: 2;
-  transform: scale(1.3);
-  transform-origin: bottom center;
 }
-.bt-head {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: #d8a878;
-}
-.bt-beard {
-  position: absolute;
-  bottom: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 26px;
-  height: 16px;
-  border-radius: 0 0 13px 13px;
-  background: #3a2a1c;
-}
-.bt-bowtie {
-  position: absolute;
-  top: 32px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 18px;
-  height: 10px;
-}
-.bt-bowtie::before, .bt-bowtie::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  width: 0;
-  height: 0;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-}
-.bt-bowtie::before { left: 0; border-right: 9px solid var(--burgundy-bright); }
-.bt-bowtie::after { right: 0; border-left: 9px solid var(--burgundy-bright); }
-.bt-body {
-  position: absolute;
-  top: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 64px;
-  height: 90px;
-  background: #efe6d4;
-  border-radius: 16px 16px 0 0;
-  overflow: hidden;
-}
-.bt-apron {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 46px;
-  height: 76px;
-  background: repeating-linear-gradient(90deg, #7a4a22 0 4px, #93602f 4px 8px);
-  border-radius: 6px 6px 0 0;
-  box-shadow: inset 0 0 0 1px rgba(212,175,55,.3);
-}
-.bt-arm {
-  position: absolute;
-  top: 48px;
-  width: 12px;
-  height: 42px;
-  background: #efe6d4;
-  border-radius: 8px;
-}
-.bt-arm-left {
-  left: 18px;
-  transform: rotate(-32deg);
-  transform-origin: top center;
-}
-.bt-arm-right {
-  right: 18px;
-  transform: rotate(32deg);
-  transform-origin: top center;
-}
-.bt-shaker {
-  position: absolute;
-  top: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.4rem;
-  filter: drop-shadow(0 3px 4px rgba(0,0,0,.5));
+.bar-bartender-img {
+  height: 230px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .5));
 }
 
 /* --- Comptoir --- */
@@ -456,4 +373,65 @@
   .bar-wrap { flex-direction: column; align-items: center; }
   .bar-side-panel { flex: 0 0 auto; width: 100%; max-width: 460px; }
   .bar-scene { max-width: 560px; width: 100%; }
+}
+
+/* --- Sélecteur de skin (bas du panneau latéral) --- */
+.bar-skin-panel {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid rgba(212, 175, 55, 0.25);
+}
+.bar-skin-title {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  color: var(--gold-bright);
+  text-align: center;
+  margin-bottom: 10px;
+}
+.bar-skin-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.skin-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+.skin-thumb:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-dim);
+}
+.skin-thumb.active {
+  border-color: var(--gold-bright);
+  background: rgba(212, 175, 55, 0.16);
+  transform: translateY(-10px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45);
+  z-index: 1;
+}
+.skin-thumb-sprite {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+  background-repeat: no-repeat;
+  background-size: 160px 160px;
+  background-position: 0 0;
+  transform: scale(1.4);
+}
+.skin-thumb-name {
+  font-size: 0.6rem;
+  color: var(--cream-dim);
+  text-align: center;
+  white-space: nowrap;
+  max-width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

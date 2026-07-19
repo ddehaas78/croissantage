@@ -21,6 +21,12 @@
   --player-sprite-h: 0;
   --player-sprite-v: 0;
 
+  /* Taille du perso à l'écran, en % de sa taille "normale" (une case,
+     1 pixel du sprite = 1 pixel affiché, sans agrandissement).
+     100 = taille normale. Monte à 120 pour un perso plus gros, descends
+     à 80 pour un perso plus petit — juste ce nombre à changer, sans toucher au PNG. */
+  --player-scale: 115;
+
   --bg: #12070a;
   --wall: #3a1420;
   --wall-edge: #6e1f31;
@@ -181,28 +187,29 @@ html, body {
 
 #player-body {
   position: relative;
-  width: calc(var(--tile-size) - 16px);
+  width: var(--tile-size);
   height: var(--tile-size);
   image-rendering: pixelated;
 
-  /* PLACEHOLDER : sprite Brendan (Pokémon Emerald) de ta démo de référence.
-     Pour utiliser ton propre spritesheet : mets le fichier dans
-     assets/sprites/player.png et remplace la ligne ci-dessous par :
-     background-image: url("./assets/sprites/player.png"); */
-  background-image: url("https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/47980ced-5dfb-4052-b3ea-e111b91c9ef8/deammik-aa7dd0c2-dc3a-4886-a76e-9883ee55ef4e.png/v1/fill/w_370,h_254/_wip__emerald_brendan_dppt_hgss_gen_4_sprite_sheet_by_hyo_oppa_deammik-fullview.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MjU0IiwicGF0aCI6IlwvZlwvNDc5ODBjZWQtNWRmYi00MDUyLWIzZWEtZTExMWI5MWM5ZWY4XC9kZWFtbWlrLWFhN2RkMGMyLWRjM2EtNDg4Ni1hNzZlLTk4ODNlZTU1ZWY0ZS5wbmciLCJ3aWR0aCI6Ijw9MzcwIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmltYWdlLm9wZXJhdGlvbnMiXX0.wFNgpfl5jYzlEVYvoorgJJEHEwoSZJ13FBRzj9k8gYI");
+  /* Spritesheet perso — grille propre 4 colonnes x 4 lignes (cases 48x48px source).
+     Lignes (haut -> bas)        : 0 bas, 1 gauche, 2 droite, 3 haut
+     Colonnes (gauche -> droite) : 0 pas gauche, 1 idle/centre, 2 pas droit, 3 libre
+     Pour changer de tenue/design : remplace juste le fichier ci-dessous en
+     gardant la même grille 4x4, ou dis-moi si tu changes la disposition. */
+  background-image: var(--player-skin-url, url("../assets/player/brendanBasic.png"));
 
-  --original-h: 371;
-  --original-v: 254;
-  --sprite-size-local: 32;
   background-size:
-    calc(var(--original-h) * (var(--tile-size) / var(--sprite-size-local)))
-    calc(var(--original-v) * (var(--tile-size) / var(--sprite-size-local)));
+    calc(4 * var(--tile-size))
+    calc(4 * var(--tile-size));
 
-  --x: calc(-64px + (var(--player-sprite-h) * 50px));
-  --y: calc((65px * var(--player-sprite-v)) - 2px);
-  background-position: var(--x) var(--y);
+  --col: calc(1 + var(--player-sprite-h));   /* -1..1  ->  0..2 */
+  --row: calc(-1 * var(--player-sprite-v));  /* 0..-3  ->  0..3 */
+  background-position:
+    calc(var(--col) * var(--tile-size) * -1)
+    calc(var(--row) * var(--tile-size) * -1);
 
-  transform: scale(1.35);
+  transform: scale(calc(var(--player-scale) / 100));
+  transform-origin: 50% 85%;
   filter: drop-shadow(0 4px 3px rgba(0,0,0,0.55));
 }
 

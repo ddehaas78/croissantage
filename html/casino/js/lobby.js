@@ -238,9 +238,9 @@ let transitioning = false;
 /* directions : axe de déplacement + ligne du spritesheet (--player-sprite-v) */
 const directions = {
   down:  { axis: { x: 0, y: 1 },  sprite: 0 },
-  up:    { axis: { x: 0, y: -1 }, sprite: -1 },
-  left:  { axis: { x: -1, y: 0 }, sprite: -2 },
-  right: { axis: { x: 1, y: 0 },  sprite: -3 },
+  left:  { axis: { x: -1, y: 0 }, sprite: -1 },
+  right: { axis: { x: 1, y: 0 },  sprite: -2 },
+  up:    { axis: { x: 0, y: -1 }, sprite: -3 },
 };
 
 /* cycle de frames de marche : pied gauche / centre / pied droit / centre */
@@ -250,6 +250,16 @@ let currSprite = 1;
 function updatePlayerPosition() {
   root.style.setProperty('--player-x', `${currPos.x * TILE}`);
   root.style.setProperty('--player-y', `${currPos.y * TILE}`);
+}
+
+// Applique le skin choisi (sauvegardé via skins.js) avant le premier rendu,
+// pour éviter tout flash du skin par défaut.
+if (typeof Skins !== 'undefined') {
+  // Le chemin est utilisé dans une variable CSS consommée par lobby.css :
+  // il se résout donc relativement à css/lobby.css (d'où le "../"), pas à
+  // lobby.html — même logique que le url() de secours dans lobby.css.
+  const skinUrl = Skins.urlFor(Skins.getCurrentId(), '../');
+  root.style.setProperty('--player-skin-url', `url("${skinUrl}")`);
 }
 
 // Placement initial sans animation : sinon le joueur glisse depuis le

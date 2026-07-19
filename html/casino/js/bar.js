@@ -138,6 +138,52 @@ const Bar = (() => {
     ).join('');
   }
 
+  // --- Sélecteur de skin ---
+  // rootPrefix '../' car bar.html est dans /html/, un niveau sous la racine
+  // où se trouve assets/player/.
+  const SKIN_ROOT_PREFIX = '../';
+
+  function buildSkinPanelHTML() {
+    if (typeof Skins === 'undefined') return '';
+    const currentId = Skins.getCurrentId();
+    const thumbs = Skins.getAll()
+      .map((skin) => {
+        const url = Skins.urlFor(skin.id, SKIN_ROOT_PREFIX);
+        const active = skin.id === currentId ? ' active' : '';
+        return `<button type="button" class="skin-thumb${active}" data-skin="${skin.id}" aria-label="Choisir le skin ${skin.name}">
+          <span class="skin-thumb-sprite" style="background-image:url('${url}')"></span>
+          <span class="skin-thumb-name">${skin.name}</span>
+        </button>`;
+      })
+      .join('');
+    return `<div class="bar-skin-panel">
+      <div class="bar-skin-title">Apparence du personnage</div>
+      <div class="bar-skin-grid">${thumbs}</div>
+    </div>`;
+  }
+
+  // Anime toutes les vignettes en boucle : gauche -> haut -> droite -> bas,
+  // avec un petit cycle de marche (pas gauche / idle / pas droit / idle) sur
+  // chaque direction, façon aperçu vivant du personnage.
+  const SKIN_THUMB_CELL = 40; // doit matcher .skin-thumb-sprite (width/height) en CSS
+  const SKIN_ROW_ORDER = [1, 3, 2, 0]; // gauche, haut, droite, bas (lignes du spritesheet)
+  const SKIN_WALK_FRAMES = [0, 1, 2, 1]; // colonnes : pas gauche, idle, pas droit, idle
+
+  function initSkinThumbAnimation(container) {
+    const thumbs = container.querySelectorAll('.skin-thumb-sprite');
+    if (!thumbs.length) return;
+    let rowIdx = 0;
+    let frameIdx = 0;
+    setInterval(() => {
+      frameIdx = (frameIdx + 1) % SKIN_WALK_FRAMES.length;
+      if (frameIdx === 0) rowIdx = (rowIdx + 1) % SKIN_ROW_ORDER.length;
+      const row = SKIN_ROW_ORDER[rowIdx];
+      const col = SKIN_WALK_FRAMES[frameIdx];
+      const pos = `${-col * SKIN_THUMB_CELL}px ${-row * SKIN_THUMB_CELL}px`;
+      thumbs.forEach((el) => { el.style.backgroundPosition = pos; });
+    }, 260);
+  }
+
   function setMessage(msg, cls) {
     const el = document.getElementById('bar-message');
     if (!el) return;
@@ -184,12 +230,7 @@ const Bar = (() => {
           <div class="bar-shelves">${buildShelvesHTML()}</div>
 
           <div class="bar-bartender">
-            <div class="bt-head"><div class="bt-beard"></div></div>
-            <div class="bt-bowtie"></div>
-            <div class="bt-body"><div class="bt-apron"></div></div>
-            <div class="bt-arm bt-arm-left"></div>
-            <div class="bt-arm bt-arm-right"></div>
-            <div class="bt-shaker">🍸</div>
+            <img class="bar-bartender-img" src="../assets/misc/bar/barman.png" alt="Le barman">
           </div>
 
           <div class="bar-counter">
@@ -203,6 +244,7 @@ const Bar = (() => {
           <div class="bar-meter"><div class="bar-meter-fill" id="bar-meter-fill"></div></div>
           <p id="bar-message" class="game-msg">Le barman essuie un verre en attendant votre commande.</p>
           <p class="bar-hint">🖱️ Cliquez sur une bouteille de l'étagère pour commander, ou sur l'eau/café du comptoir pour dessaouler.</p>
+          ${buildSkinPanelHTML()}
         </div>
       </div>
     `;
@@ -210,6 +252,15 @@ const Bar = (() => {
     container.querySelectorAll('.bar-real-drink, .bar-counter-remedy').forEach((btn) => {
       btn.addEventListener('click', () => order(btn.dataset.drink));
     });
+
+    container.querySelectorAll('.skin-thumb').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (typeof Skins === 'undefined') return;
+        Skins.setCurrentId(btn.dataset.skin);
+        container.querySelectorAll('.skin-thumb').forEach((b) => b.classList.toggle('active', b === btn));
+      });
+    });
+    initSkinThumbAnimation(container);
 
     // Si une image de cocktail est manquante/mal nommée, on retombe sur un emoji
     // générique plutôt que d'afficher l'icône "image cassée" du navigateur.
