@@ -18,12 +18,12 @@ const videos = [
     { thumb: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", alt: "Analytics", duration: "11:11", title: "Caught Leaking Memory in Public", author: "C_Plus_Plus_Guy", badge: null, views: "950K views", rating: "89%" },
 ];
 
-const adsLeft = [
+const promosLeft = [
     { img: "images/croissantFlou.png", alt: "Croissant", badge: "HOT DEAL", headline: "HOT SINGLES IN YOUR AREA", subtext: "They are flaky, buttery, and waiting for you.", cta: "EAT NOW &gt;" },
     { img: "images/mikadulte.png", alt: "Machine", badge: "SPONSORED", headline: "ENLARGE YOUR OUTPUT", subtext: "Devs hate him! This machine does the work of 10 interns.", cta: "GET HARDWARE &gt;" },
 ];
 
-const adsRight = [
+const promosRight = [
     { img: "images/degoulinant.png", alt: "Pile of Croissants", badge: "LIVE CAM", headline: "GROUP ACTION", subtext: "Satisfy your cravings with unlimited carbs tonight.", cta: "JOIN FOR FREE &gt;" },
     { img: "images/flouDARK CHOCOLATE.png", alt: "Machine 2", badge: "18+ ONLY", headline: "SHE WANTS YOUR RAM", subtext: "This AI assistant will do anything you ask. Anything.", cta: "CHAT NOW &gt;" },
 ];
@@ -34,7 +34,7 @@ function videoCardHTML(v) {
     return `
         <div class="video-card group">
             <div class="thumbnail-container">
-                <img src="${v.thumb}" alt="${v.alt}" class="w-full h-full object-cover">
+                <img src="${v.thumb}" alt="${v.alt}" class="w-full h-full object-cover" loading="lazy">
                 <div class="duration-badge">${v.duration}</div>
                 <div class="card-menu"><i class="fas fa-ellipsis-h"></i></div>
             </div>
@@ -52,24 +52,24 @@ function videoCardHTML(v) {
         </div>`;
 }
 
-function adHTML(ad) {
+function promoHTML(promo) {
     return `
         <a href="html/trap.html" class="block">
-            <div class="fake-ad">
-                <span class="ad-badge">${ad.badge}</span>
-                <img src="${ad.img}" alt="${ad.alt}" class="w-full h-48 object-cover">
-                <div class="ad-text-overlay">
-                    <div class="ad-headline">${ad.headline}</div>
-                    <div class="ad-subtext">${ad.subtext}</div>
-                    <div class="ad-button">${ad.cta}</div>
+            <div class="promo-card">
+                <span class="promo-tag">${promo.badge}</span>
+                <img src="${promo.img}" alt="${promo.alt}" class="w-full h-48 object-cover" loading="lazy">
+                <div class="promo-overlay">
+                    <div class="promo-title">${promo.headline}</div>
+                    <div class="promo-desc">${promo.subtext}</div>
+                    <div class="promo-cta">${promo.cta}</div>
                 </div>
             </div>
         </a>`;
 }
 
 document.getElementById("video-grid").innerHTML = videos.map(videoCardHTML).join("");
-document.getElementById("ads-left").innerHTML = adsLeft.map(adHTML).join("");
-document.getElementById("ads-right").innerHTML = adsRight.map(adHTML).join("");
+document.getElementById("promo-left").innerHTML = promosLeft.map(promoHTML).join("");
+document.getElementById("promo-right").innerHTML = promosRight.map(promoHTML).join("");
 
 // ---------- MODAL ----------
 const videoModal = document.getElementById('video-modal');

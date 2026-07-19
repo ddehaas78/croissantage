@@ -140,17 +140,17 @@ body {
     color: black;
 }
 
-.ad-sidebar .fake-ad {
+.side-panel .promo-card {
     min-width: 220px;
 }
 @media (max-width: 1023px) {
-    .ad-sidebar .fake-ad {
+    .side-panel .promo-card {
         width: 260px;
         margin-bottom: 0;
     }
 }
 
-.fake-ad {
+.promo-card {
     border: 1px solid #333;
     background-color: #1a1a1a;
     margin-bottom: 20px;
@@ -159,12 +159,12 @@ body {
     cursor: pointer;
     transition: transform 0.2s;
 }
-.fake-ad:hover {
+.promo-card:hover {
     border-color: #ff9300;
     transform: scale(1.02);
 }
 
-.ad-badge {
+.promo-tag {
     position: absolute;
     top: 0;
     right: 0;
@@ -176,12 +176,12 @@ body {
     z-index: 10;
 }
 
-.ad-text-overlay {
+.promo-overlay {
     padding: 10px;
     text-align: center;
 }
 
-.ad-headline {
+.promo-title {
     color: #ff9300;
     font-weight: bold;
     text-transform: uppercase;
@@ -190,14 +190,14 @@ body {
     line-height: 1.2;
 }
 
-.ad-subtext {
+.promo-desc {
     color: #fff;
     font-size: 0.9rem;
     margin-bottom: 10px;
     line-height: 1.3;
 }
 
-.ad-button {
+.promo-cta {
     display: inline-block;
     background: #ff9300;
     color: black;
