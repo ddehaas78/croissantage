@@ -18,6 +18,9 @@ const Skins = (() => {
     { id: 'archie', name: 'Archie', file: 'archie.png' },
     { id: 'courtney', name: 'Courtney', file: 'courtney.png' },
     { id: 'flannery', name: 'Flannery', file: 'flannery.png' },
+    { id: 'cynthia', name: 'Cynthia', file: 'cynthia.png' },
+    { id: 'giovanni', name: 'Giovanni', file: 'giovanni.png' },
+    { id: 'phyre', name: 'Phyre', file: 'phyre.png' },
 
     // Futurs skins (achetables dans le shop) : ajoute-les ici, ex.
     // { id: 'pirate', name: 'Pirate', file: 'pirate.png' },

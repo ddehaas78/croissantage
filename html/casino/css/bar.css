@@ -389,10 +389,9 @@
   margin-bottom: 10px;
 }
 .bar-skin-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 10px;
-  justify-content: center;
 }
 .skin-thumb {
   display: flex;
