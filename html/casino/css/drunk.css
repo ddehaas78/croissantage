@@ -1,0 +1,49 @@
+/* drunk.css — effet visuel d'ivresse (flou léger + tangage doux),
+   partagé par toutes les pages (bar, blackjack, roulette...).
+   Piloté par drunk.js via des classes ajoutées sur <body>.
+*/
+
+body {
+  transform-origin: 50% 50%;
+  transition: filter 1s ease;
+}
+
+/* Pas de filtre lourd, pas d'assombrissement : juste un léger flou
+   et un tangage doux qui s'intensifient avec le niveau d'ivresse. */
+
+body.drunk-1 {
+  filter: blur(0.5px) saturate(1.05);
+  animation: drunkSway1 6s ease-in-out infinite;
+}
+
+body.drunk-2 {
+  filter: blur(1px) saturate(1.1);
+  animation: drunkSway2 5s ease-in-out infinite;
+}
+
+body.drunk-3 {
+  filter: blur(1.6px) saturate(1.15);
+  animation: drunkSway3 4.2s ease-in-out infinite;
+}
+
+body.drunk-4 {
+  filter: blur(2.2px) saturate(1.2);
+  animation: drunkSway4 3.4s ease-in-out infinite;
+}
+
+@keyframes drunkSway1 {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  50% { transform: rotate(0.2deg) translateY(1px); }
+}
+@keyframes drunkSway2 {
+  0%, 100% { transform: rotate(-0.4deg) translate(-1px, 0); }
+  50% { transform: rotate(0.5deg) translate(1px, 1px); }
+}
+@keyframes drunkSway3 {
+  0%, 100% { transform: rotate(-0.8deg) translate(-2px, 1px); }
+  50% { transform: rotate(0.9deg) translate(2px, -1px); }
+}
+@keyframes drunkSway4 {
+  0%, 100% { transform: rotate(-1.3deg) translate(-3px, 1px); }
+  50% { transform: rotate(1.4deg) translate(3px, -2px); }
+}

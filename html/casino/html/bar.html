@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Le Bar - Casino</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/game-page.css">
+  <link rel="stylesheet" href="../css/drunk.css">
+  <link rel="stylesheet" href="../css/bar.css">
+</head>
+<body id="bar">
+
+  <div class="game-topbar">
+    <a href="../lobby.html" class="game-back">
+      <span aria-hidden="true">&larr;</span> Retour au lobby
+    </a>
+    <div class="game-title">🍸 Le Bar</div>
+    <div class="game-topbar-right">
+      <button type="button" class="btn btn-primary recharge-btn" id="btn-recharge">Recharger</button>
+      <div class="topbar-balance">
+        <span class="coin" aria-hidden="true"></span>
+        <span data-wallet-balance>0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-body"></div>
+
+  <script src="../js/wallet.js"></script>
+  <script src="../js/drunk.js"></script>
+  <script src="../js/bar.js"></script>
+  <script>
+    // Bouton de recharge : à remplacer par ta vraie modale de recharge
+    // si tu en as déjà une ailleurs (blackjack.html, roulette.html...).
+    document.getElementById('btn-recharge').addEventListener('click', () => {
+      Wallet.add(500);
+    });
+  </script>
+</body>
+</html>

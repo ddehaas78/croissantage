@@ -80,7 +80,12 @@
             const container = document.getElementById('intro');
             // Ajoute la classe qui déclenche l'animation CSS (fondu + zoom)
             container.classList.add('fade-out');
-            
+
+            // On efface la position sauvegardée du lobby : en arrivant depuis
+            // l'écran d'entrée, on veut toujours spawn au centre, pas reprendre
+            // une position laissée par une session précédente dans cet onglet.
+            try { sessionStorage.removeItem('croissantage_lobby_pos'); } catch (e) { /* stockage indisponible, tant pis */ }
+
             // Attend 1 seconde (le temps de l'animation) puis redirige vers le lobby
             setTimeout(() => {
                 window.location.href = 'lobby.html';

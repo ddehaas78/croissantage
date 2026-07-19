@@ -20,15 +20,24 @@ const TILE = 64;
 /* Chaque jeu a : une porte (walkable + effet), un toit (bloquant, décoratif)
    et des façades (bloquantes) de part et d'autre de la porte. */
 const GAMES = [
-  { key: "blackjack", name: "Blackjack",        icon: "🃏", href: "./blackjack.html" },
-  { key: "roulette",  name: "Roulette",         icon: "🎡", href: "./roulette.html" },
-  { key: "poker",     name: "Poker",            icon: "♠️", href: "./poker.html" },
-  { key: "slots",     name: "Machines à sous",  icon: "🎰", href: "./slots.html" },
+  { key: "blackjack", name: "Blackjack",        icon: "🃏", href: "./html/blackjack.html" },
+  { key: "roulette",  name: "Roulette",         icon: "🎡", href: "./html/roulette.html" },
+  { key: "poker",     name: "Poker",            icon: "♠️", href: "./html/poker.html" },
+  { key: "slots",     name: "Machines à sous",  icon: "🎰", href: "./html/columbus.html" },
 ];
 GAMES.forEach((g, i) => {
   g.doorCode = 10 + i;   // 10-13
   g.roofCode = 20 + i;   // 20-23
   g.facadeCode = 30 + i; // 30-33
+});
+
+/* ---------- Lieux annexes (petite enseigne à plat, sans étage) ---------- */
+/* Toutes les cases de la largeur sont des portes visibles (bordure + icône + label). */
+const EXTRAS = [
+  { key: "bar", name: "Bar", icon: "🍸", href: "./html/bar.html", x: 10, y: 10, width: 2 },
+];
+EXTRAS.forEach((e, i) => {
+  e.doorCode = 40 + i; // 40-...
 });
 
 /* Position (colonne de départ, largeur 3) de chaque maison sur la grille */
@@ -53,6 +62,7 @@ const colliders = buildGrid(WIDTH, HEIGHT);
 /* ---------- Construction des maisons ---------- */
 GAMES.forEach((g, i) => {
   const xs = HOUSE_X[i];
+  g.x = xs; g.y = 3; g.width = 3;
   // toit (rangée y=2, 3 tuiles)
   colliders[2][xs]     = g.roofCode;
   colliders[2][xs + 1] = g.roofCode;
@@ -90,6 +100,11 @@ const decoSpots = [
 ];
 decoSpots.forEach(([x, y, code]) => { colliders[y][x] = code; });
 
+/* ---------- Lieux annexes sur la grille ---------- */
+EXTRAS.forEach(e => {
+  for (let dx = 0; dx < e.width; dx++) colliders[e.y][e.x + dx] = e.doorCode;
+});
+
 /* ---------- Table des types de tuiles ---------- */
 const tileTypes = {
   0: { collide: false, kind: "floor" },
@@ -112,10 +127,19 @@ GAMES.forEach(g => {
     collide: true, kind: "facade", house: g.key,
   };
 });
+EXTRAS.forEach(e => {
+  tileTypes[e.doorCode] = {
+    collide: false, kind: "door", house: e.key,
+    icon: e.icon, label: e.name, text: `Entrée : ${e.name}`,
+    effect: () => enterHouse(e.href),
+  };
+});
 
 /* ---------- Rendu de la grille ---------- */
 mapEl.style.width = `${WIDTH * TILE}px`;
 mapEl.style.height = `${HEIGHT * TILE}px`;
+
+const ALL_PLACES = [...GAMES, ...EXTRAS];
 
 for (let y = 0; y < HEIGHT; y++) {
   for (let x = 0; x < WIDTH; x++) {
@@ -130,8 +154,9 @@ for (let y = 0; y < HEIGHT; y++) {
     if (type.kind === "door") {
       div.innerHTML = `<span class="label">${type.label}</span><span class="icon">${type.icon}</span>`;
     } else if (type.kind === "roof") {
-      div.innerHTML = (x === HOUSE_X[GAMES.findIndex(g => g.key === type.house)] + 1)
-        ? `<span class="icon">${type.icon}</span>` : '';
+      const place = ALL_PLACES.find(p => p.key === type.house);
+      const centerX = place.x + Math.floor(place.width / 2);
+      div.innerHTML = (x === centerX) ? `<span class="icon">${type.icon}</span>` : '';
     } else if (type.kind === "deco") {
       div.innerHTML = `<span class="icon">${type.icon}</span>`;
     }
@@ -139,8 +164,32 @@ for (let y = 0; y < HEIGHT; y++) {
   }
 }
 
+
 /* ---------- État du joueur ---------- */
-const currPos = { x: 10, y: 9 };
+const SPAWN_DEFAULT = { x: 10, y: 6 };
+const POS_KEY = 'croissantage_lobby_pos';
+
+function loadSavedPos() {
+  try {
+    const raw = sessionStorage.getItem(POS_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (
+      Number.isInteger(p.x) && Number.isInteger(p.y) &&
+      p.x >= 0 && p.y >= 0 && p.x < WIDTH && p.y < HEIGHT &&
+      !getTile(p.x, p.y).collide
+    ) return p;
+  } catch (e) { /* ignore, on repart du spawn par défaut */ }
+  return null;
+}
+
+function savePos() {
+  try {
+    sessionStorage.setItem(POS_KEY, JSON.stringify({ x: currPos.x, y: currPos.y }));
+  } catch (e) { /* stockage indisponible, tant pis */ }
+}
+
+const currPos = loadSavedPos() || { ...SPAWN_DEFAULT };
 const control = { moving: "idle", lastMoving: "idle" };
 
 // délai entre chaque case parcourue (vitesse de marche)
@@ -166,7 +215,15 @@ function updateMapPosition() {
   root.style.setProperty('--map-x', `${currPos.x * TILE}`);
   root.style.setProperty('--map-y', `${currPos.y * TILE}`);
 }
+
+// Placement initial sans animation : sinon la carte glisse depuis le
+// centre par défaut jusqu'à la position restaurée (effet "téléportation").
+mapEl.style.transition = 'none';
 updateMapPosition();
+void mapEl.offsetHeight; // force le navigateur à appliquer la position avant de réactiver la transition
+requestAnimationFrame(() => {
+  mapEl.style.transition = '';
+});
 setSpriteDirection('down');
 
 function setSpriteDirection(direction) {
@@ -203,6 +260,7 @@ function showText(t) {
 function enterHouse(href) {
   if (transitioning) return;
   transitioning = true;
+  savePos();
   stopAllMovement();
   player.classList.add('fade-out');
   mapEl.style.transition = 'opacity 250ms linear';
@@ -265,6 +323,7 @@ function move() {
   currPos.x += axis.x;
   currPos.y += axis.y;
   updateMapPosition();
+  savePos();
 
   if (next.text) showText(next.text); else showText(null);
   if (next.effect) next.effect();

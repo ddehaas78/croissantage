@@ -1,0 +1,444 @@
+/* columbus.css — Columbus Deluxe, thème Croissantage */
+
+.cd-wrap{
+  max-width: 1320px;
+  margin: 0 auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+}
+
+/* ---------- Bandeau Free Spins ---------- */
+.cd-fs-banner{
+  width:100%;
+  max-width:760px;
+  text-align:center;
+  padding:10px;
+  border-radius:12px;
+  background: linear-gradient(160deg, var(--gold-bright), var(--gold));
+  color:#241a08;
+  font-family: var(--font-display);
+  font-weight:800;
+  letter-spacing:.03em;
+  font-size:.85rem;
+  box-shadow: 0 4px 14px rgba(212,175,55,.4);
+}
+
+/* ---------- Layout rouleaux + paytable côte à côte ---------- */
+.cd-layout{
+  width:100%;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+/* ---------- Rouleaux ---------- */
+.cd-reels-stage{
+  position:relative;
+  flex: 1 1 600px;
+  max-width:740px;
+  padding:14px;
+  border-radius:18px;
+  border:3px solid var(--gold);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(212,175,55,.08), transparent 55%),
+    linear-gradient(160deg, #3a1608, #1c0a04);
+  box-shadow: inset 0 0 40px rgba(0,0,0,.6), 0 14px 30px rgba(0,0,0,.5);
+}
+
+.cd-winlines-svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  z-index:5;
+  overflow:visible;
+}
+
+.cd-winline{
+  fill:none;
+  stroke-width:5;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  filter: drop-shadow(0 0 4px rgba(0,0,0,.8));
+  opacity:0;
+  animation: cdWinlineIn .35s ease forwards, cdWinlinePulse 1.4s ease-in-out .35s infinite;
+}
+.cd-winline-ghost{
+  fill:none;
+  stroke-width:2.5;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  stroke-dasharray: 5 7;
+  opacity:0;
+  animation: cdWinlineGhostIn .35s ease forwards;
+}
+@keyframes cdWinlineGhostIn{
+  from{ opacity:0; }
+  to{ opacity:.4; }
+}
+@keyframes cdWinlineIn{
+  from{ opacity:0; }
+  to{ opacity:1; }
+}
+@keyframes cdWinlinePulse{
+  0%,100%{ stroke-width:5; filter: drop-shadow(0 0 4px rgba(0,0,0,.8)); }
+  50%{ stroke-width:7; filter: drop-shadow(0 0 9px rgba(0,0,0,.9)); }
+}
+
+.cd-reels{
+  display:flex;
+  gap:6px;
+  justify-content:center;
+}
+
+.cd-reel{
+  position:relative;
+  width: 120px;
+  height: 384px;
+  overflow:hidden;
+  border-radius:10px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(212,175,55,.35);
+}
+
+.cd-reel-track{
+  display:flex;
+  flex-direction:column;
+  will-change: transform;
+}
+
+.cd-cell{
+  width:120px;
+  height:128px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:3.4rem;
+  line-height:1;
+}
+
+.cd-symbol-img{
+  width:76%;
+  height:82%;
+  object-fit:contain;
+  border-radius:8px;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,.5));
+  pointer-events:none;
+  user-select:none;
+}
+
+.cd-pt-card{
+  width:44px;
+  height:48px;
+  display:inline-block;
+  vertical-align:middle;
+}
+
+.cd-cell-win{
+  border-radius:8px;
+  background: radial-gradient(circle, rgba(212,175,55,.35), transparent 70%);
+  animation: cdCellPulse 1s ease-in-out infinite;
+}
+@keyframes cdCellPulse{
+  0%,100%{ filter:brightness(1); transform:scale(1); }
+  50%{ filter:brightness(1.5); transform:scale(1.08); }
+}
+
+/* ---------- Message + liste des gains ---------- */
+.cd-info-bar{
+  width:100%;
+  max-width:760px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+}
+
+.cd-wins-list{
+  width:100%;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
+  max-height:84px;
+  overflow-y:auto;
+}
+.cd-win-chip{
+  background: var(--panel-light);
+  border:1px solid var(--gold-dim);
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:.68rem;
+  color: var(--cream);
+  white-space:nowrap;
+}
+.cd-win-chip strong{ color: var(--gold-bright); }
+.cd-win-chip.cd-win-total{
+  border-color: var(--gold-bright);
+  background: linear-gradient(160deg, var(--panel-light), var(--panel));
+}
+
+/* ---------- Gamble ---------- */
+.cd-gamble-panel{
+  width:100%;
+  max-width:760px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  padding:14px;
+  border-radius:14px;
+  border:1px solid var(--gold-dim);
+  background: var(--panel);
+}
+.cd-gamble-amount{
+  font-family: var(--font-display);
+  color: var(--gold-bright);
+  font-weight:800;
+  font-size:.85rem;
+}
+.cd-gamble-actions{
+  display:flex;
+  gap:10px;
+}
+.cd-gamble-actions .btn-action{
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-weight:700;
+  letter-spacing:.03em;
+  font-size:.74rem;
+}
+.cd-gamble-pile{ background: linear-gradient(160deg, var(--gold-bright), var(--gold) 70%, var(--gold-dim)); color:#241a08; }
+.cd-gamble-face{ background: linear-gradient(160deg, #cfd8dc, #78909c); color:#1c2226; }
+.cd-gamble-cashout{ background: linear-gradient(180deg, var(--gold-bright), var(--gold) 70%, var(--gold-dim)); color:#241a08; }
+
+/* ---------- Pièce (Pile ou Face) ---------- */
+.cd-coin-wrap{
+  perspective: 700px;
+  width:72px;
+  height:72px;
+}
+.cd-coin{
+  position:relative;
+  width:100%;
+  height:100%;
+  transform-style: preserve-3d;
+  transform: rotateY(0deg);
+}
+.cd-coin-side{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  border-radius:50%;
+  backface-visibility:hidden;
+  font-size:1.7rem;
+  background: linear-gradient(160deg, var(--gold-bright), var(--gold) 70%, var(--gold-dim));
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,.3), 0 4px 10px rgba(0,0,0,.5);
+  color:#241a08;
+}
+.cd-coin-side span{
+  font-family: var(--font-display);
+  font-size:.5rem;
+  font-weight:800;
+  letter-spacing:.05em;
+}
+.cd-coin-side-face{
+  transform: rotateY(180deg);
+  background: linear-gradient(160deg, #e3e9ec, #90a4ae 70%, #607d8b);
+  color:#1c2226;
+}
+
+/* ---------- Barre de contrôles ---------- */
+.cd-controls-bar{
+  width:100%;
+  max-width:760px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  flex-wrap:wrap;
+  padding:12px 18px;
+  border-radius:14px;
+  border:1px solid var(--gold-dim);
+  background: var(--panel);
+}
+
+.cd-control{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+}
+.cd-control-label{
+  font-size:.62rem;
+  color: var(--cream-dim);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.cd-bet-multipliers{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.cd-bet-mult-btn{
+  min-width:38px;
+  padding:6px 8px;
+  border-radius:8px;
+  border:1px solid var(--gold-dim);
+  background: var(--panel-light);
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-weight:700;
+  font-size:.72rem;
+  cursor:pointer;
+  line-height:1;
+}
+.cd-bet-mult-btn:hover:not(:disabled){ border-color: var(--gold-bright); color: var(--gold-bright); }
+.cd-bet-mult-btn:disabled{ opacity:.4; cursor:not-allowed; }
+.cd-bet-mult-btn.active{
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold) 70%, var(--gold-dim));
+  color:#241a08;
+  border-color: var(--gold-bright);
+}
+
+.cd-total-bet{
+  font-family: var(--font-display);
+  color: var(--gold-bright);
+  font-size:.85rem;
+  white-space:nowrap;
+}
+
+.cd-paytable-btn{
+  background: transparent;
+  border:1px solid var(--gold-dim);
+  color: var(--cream-dim);
+  padding:10px 16px;
+  border-radius:10px;
+  font-family: var(--font-display);
+  font-weight:700;
+  font-size:.76rem;
+}
+.cd-paytable-btn:hover:not(:disabled){ border-color: var(--gold-bright); color: var(--gold-bright); }
+
+.cd-spin-btn{
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold) 70%, var(--gold-dim));
+  color:#241a08;
+  padding:10px 28px;
+  border-radius:10px;
+  font-family: var(--font-display);
+  font-weight:800;
+  letter-spacing:.03em;
+  font-size:.85rem;
+  box-shadow: 0 4px 14px rgba(212,175,55,.4);
+}
+.cd-spin-btn:hover:not(:disabled){ filter:brightness(1.08); }
+.cd-spin-btn:disabled, .cd-paytable-btn:disabled{ filter: grayscale(.5) brightness(.6); cursor:not-allowed; }
+
+/* ---------- Paytable (panneau latéral, côte à côte avec les rouleaux) ---------- */
+.cd-paytable-side{
+  position:relative;
+  flex: 1 1 460px;
+  max-width:600px;
+  max-height:500px;
+  overflow-y:auto;
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  border:2px solid var(--gold);
+  border-radius:16px;
+  padding:18px 16px;
+  box-shadow: 0 14px 30px rgba(0,0,0,.5);
+}
+
+.cd-paytable-sub{
+  text-align:center;
+  font-size:.68rem;
+  color: var(--cream-dim);
+  margin-bottom:8px;
+}
+.cd-paytable-sub strong{ color: var(--gold-bright); }
+
+.cd-paytable-close{
+  position:absolute;
+  top:12px;
+  right:12px;
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  border:1px solid var(--gold-dim);
+  background: transparent;
+  color: var(--cream);
+  cursor:pointer;
+}
+.cd-paytable-close:hover{ border-color: var(--gold-bright); color: var(--gold-bright); }
+
+.cd-paytable-title{
+  text-align:center;
+  font-family: var(--font-display);
+  color: var(--gold-bright);
+  margin:0 0 10px;
+}
+
+.cd-paytable-grid{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items:start;
+  gap:8px;
+}
+.cd-pt-tile{
+  background: var(--panel);
+  border:1px solid var(--gold-dim);
+  border-radius:12px;
+  padding:8px;
+  text-align:center;
+}
+.cd-pt-emoji{ font-size:1.5rem; margin-bottom:4px; }
+.cd-pt-name{ font-size:.6rem; color: var(--cream-dim); margin-bottom:4px; }
+.cd-pt-row{
+  display:flex;
+  justify-content:space-between;
+  font-size:.6rem;
+  color: var(--cream);
+  padding:1px 3px;
+}
+.cd-pt-row span:last-child{ color: var(--gold-bright); font-weight:700; }
+
+.cd-pt-tile-scatter{
+  grid-column: span 2;
+  text-align:left;
+  padding:8px 10px;
+}
+.cd-pt-scatter-title{
+  font-family: var(--font-display);
+  font-size:.85rem;
+  color: var(--gold-bright);
+  margin-bottom:4px;
+}
+.cd-pt-scatter-body{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:.6rem;
+  line-height:1.4;
+  color: var(--cream-dim);
+  flex-wrap:wrap;
+}
+.cd-pt-scatter-emoji{ font-size:1.2rem; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 620px){
+  .cd-cell{ width:56px; height:60px; font-size:1.7rem; }
+  .cd-cell-card{ font-size:1.1rem; }
+  .cd-reel{ width:56px; height:180px; }
+  .cd-controls-bar{ gap:10px; }
+  .cd-paytable-grid{ grid-template-columns: repeat(2, 1fr); }
+  .cd-paytable-side{ max-width:100%; max-height:none; }
+}

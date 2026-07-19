@@ -4,15 +4,23 @@
   width:100%;
   max-width: 1080px;
   display:flex;
-  gap:24px;
-  align-items:flex-start;
-  justify-content:center;
+  flex-direction: column;
+  gap:20px;
+  align-items:stretch;
   margin: 0 auto;
 }
 
-/* ---------- Colonne gauche : roue + contrôles ---------- */
-.rl-left{
-  flex: 0 0 250px;
+/* ---------- Rangée haute : roue + table de mises ---------- */
+.rl-top{
+  display:flex;
+  gap:24px;
+  align-items:flex-start;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+.rl-wheel-panel{
+  flex: 0 0 440px;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -21,8 +29,8 @@
 
 .rl-wheel-stage{
   position:relative;
-  width: min(230px, 62vw);
-  height: min(230px, 62vw);
+  width: min(440px, 80vw);
+  height: min(440px, 80vw);
   border-radius:50%;
 }
 .rl-wheel-stage::before{
@@ -52,7 +60,7 @@
 .rl-wheel-num{
   font-family: var(--font-body);
   font-weight:700;
-  font-size: 9.5px;
+  font-size: 12px;
   fill: var(--cream);
 }
 
@@ -130,10 +138,24 @@
   100%{ transform: scale(1); }
 }
 
+.rl-side-panel{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:22px;
+  flex-wrap:wrap;
+  background: var(--panel);
+  border: 1px solid var(--gold-dim);
+  border-radius: 14px;
+  padding: 12px 20px;
+}
+
 .rl-message{
   text-align:center;
   min-height: 32px;
   font-size:.82rem;
+  margin:0;
 }
 
 .rl-total-bet{
@@ -142,6 +164,7 @@
   color: var(--gold-bright);
   display:flex;
   gap:6px;
+  white-space:nowrap;
 }
 
 .rl-chip-row{
@@ -149,6 +172,43 @@
   gap:6px;
   flex-wrap:wrap;
   justify-content:center;
+}
+
+.rl-bets-list{
+  width:100%;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
+  max-height: 76px;
+  overflow-y:auto;
+}
+.rl-bet-chip{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background: var(--panel-light);
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor:pointer;
+  transition: border-color .15s ease, transform .1s ease;
+}
+.rl-bet-chip:hover{
+  border-color: var(--gold-bright);
+  transform: translateY(-1px);
+}
+.rl-bet-chip-label{
+  font-size:.68rem;
+  color: var(--cream-dim);
+  white-space:nowrap;
+}
+.rl-bet-chip-amount{
+  font-family: var(--font-display);
+  font-weight:700;
+  font-size:.72rem;
+  color: var(--gold-bright);
+  white-space:nowrap;
 }
 .rl-chip{
   width:40px; height:40px;
@@ -183,16 +243,15 @@
 .rl-actions{
   display:flex;
   gap:8px;
-  width:100%;
 }
 .rl-actions .btn-action{
-  flex:1;
-  padding: 10px 8px;
+  padding: 10px 18px;
   border-radius: 10px;
   font-family: var(--font-display);
   font-weight:700;
   letter-spacing:.03em;
   font-size:.76rem;
+  white-space:nowrap;
 }
 .rl-clear{
   background: transparent;
@@ -227,15 +286,10 @@
 .rl-history-black{ background: #171310; }
 .rl-history-green{ background: var(--emerald); }
 
-/* ---------- Colonne droite : table de mises ---------- */
-.rl-right{
-  flex:1;
-  min-width:0;
-  max-width: 720px;
-}
-
 .rl-table-wrap{
-  width:100%;
+  flex: 1 1 380px;
+  min-width: 280px;
+  max-width: 720px;
   background:
     radial-gradient(circle at 20% 0%, rgba(212,175,55,.06), transparent 55%),
     linear-gradient(160deg, #0e2c22, #0a1f18);
@@ -325,9 +379,12 @@
 
 /* ---------- Responsive ---------- */
 @media (max-width: 860px){
-  .rl-wrap{ flex-direction:column; align-items:center; }
-  .rl-left{ flex:0 0 auto; }
-  .rl-right{ max-width:520px; width:100%; }
+  .rl-top{ flex-direction:column; align-items:center; }
+  .rl-wheel-panel{ flex:0 0 auto; }
+  .rl-table-wrap{ max-width:520px; width:100%; }
+  .rl-side-panel{ flex-direction:column; }
+  .rl-actions{ width:100%; }
+  .rl-actions .btn-action{ flex:1; }
 }
 
 @media (max-width: 480px){

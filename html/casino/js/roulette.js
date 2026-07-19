@@ -166,18 +166,19 @@ const Roulette = (() => {
             <div id="rl-history" class="rl-history"></div>
           </div>
 
-          <div class="rl-side-panel">
-            <p id="roulette-message" class="game-msg">Placez vos jetons sur la table.</p>
-            <div class="rl-total-bet">Mise totale : <span id="rl-total">0</span> 🪙</div>
-            <div class="rl-chip-row" id="rl-chip-row">${buildChipsHTML()}</div>
-            <div class="rl-actions">
-              <button type="button" class="btn-action rl-clear" id="rl-clear-btn">Effacer les mises</button>
-              <button type="button" class="btn-action rl-spin" id="rl-spin-btn">LANCER</button>
-            </div>
-          </div>
+          <div class="rl-table-wrap" id="rl-table">${buildTableHTML()}</div>
         </div>
 
-        <div class="rl-table-wrap" id="rl-table">${buildTableHTML()}</div>
+        <div class="rl-side-panel">
+          <p id="roulette-message" class="game-msg">Placez vos jetons sur la table.</p>
+          <div class="rl-total-bet">Mise totale : <span id="rl-total">0</span> 🪙</div>
+          <div class="rl-bets-list" id="rl-bets-list"></div>
+          <div class="rl-chip-row" id="rl-chip-row">${buildChipsHTML()}</div>
+          <div class="rl-actions">
+            <button type="button" class="btn-action rl-clear" id="rl-clear-btn">Effacer les mises</button>
+            <button type="button" class="btn-action rl-spin" id="rl-spin-btn">LANCER</button>
+          </div>
+        </div>
       </div>
     `;
 
@@ -233,6 +234,7 @@ const Roulette = (() => {
     }
     updateBetBadge(key, entry.amount);
     updateTotal();
+    renderBetsList();
     setMessage(`Mise placée : ${label} (${amount} 🪙)`);
   }
 
@@ -251,6 +253,7 @@ const Roulette = (() => {
       updateBetBadge(key, entry.amount);
     }
     updateTotal();
+    renderBetsList();
   }
 
   function updateBetBadge(key, amount) {
@@ -263,6 +266,31 @@ const Roulette = (() => {
       badge.textContent = '';
       badge.classList.remove('show');
     }
+  }
+
+  function renderBetsList() {
+    const el = document.getElementById('rl-bets-list');
+    if (!el) return;
+    if (bets.length === 0) {
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = bets
+      .map(
+        (b) => `<span class="rl-bet-chip" data-remove-key="${b.key}" title="Clic pour retirer un jeton">
+          <span class="rl-bet-chip-label">${b.label}</span>
+          <span class="rl-bet-chip-amount">${fmt(b.amount)} 🪙</span>
+        </span>`
+      )
+      .join('');
+    el.querySelectorAll('.rl-bet-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        if (spinning) return;
+        const key = chip.dataset.removeKey;
+        const btn = document.querySelector(`.rl-cell[data-key="${key}"]`);
+        if (btn) removeOneBet(btn);
+      });
+    });
   }
 
   function updateTotal() {
@@ -278,6 +306,7 @@ const Roulette = (() => {
     bets.forEach((b) => updateBetBadge(b.key, 0));
     bets = [];
     updateTotal();
+    renderBetsList();
     setMessage('Mises effacées.');
   }
 
@@ -363,6 +392,7 @@ const Roulette = (() => {
     bets.forEach((b) => updateBetBadge(b.key, 0));
     bets = [];
     updateTotal();
+    renderBetsList();
 
     spinning = false;
     toggleControls(true);
