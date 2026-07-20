@@ -50,6 +50,29 @@ EXTRA_HOUSES.forEach((e, i) => {
 
 const ALL_HOUSES = [...GAMES, ...EXTRA_HOUSES];
 
+/* ---------- Images des bâtiments (toit + façade en un seul visuel) ---------- */
+/* Chaque image doit faire (largeur_maison * TILE) x (2 * TILE) px, soit
+   192x128 pour une maison classique (largeur 3). Dépose les fichiers dans
+   assets/misc/batiment/ et remplace juste le fichier pour changer le visuel
+   (pas besoin de retoucher le code). Retire une ligne pour revenir au rendu
+   par défaut (couleur unie + icône) tant que l'image n'existe pas.
+   Attention : contrairement à un url() écrit dans lobby.css (résolu relatif
+   au fichier CSS), ce chemin est appliqué en JS via style.backgroundImage,
+   donc résolu relativement à lobby.html lui-même. Comme assets/ est au même
+   niveau que lobby.html (sibling de css/ et js/), pas de "../" ici. */
+const HOUSE_IMAGE_BASE = "assets/misc/batiment/";
+const HOUSE_IMAGES = {
+  blackjack:        "blackjack.png",
+  roulette:          "roulette.png",
+  poker:             "poker.png",
+  slots:             "slots.png",
+  baccara:           "baccara.png",
+  bar:               "bar.png",
+  "future-left":     "future-left.png",
+  "future-right":    "future-right.png",
+  "future-bottom-2": "future-bottom-2.png",
+};
+
 /* Position (colonne de départ, largeur 3) de chaque maison de jeu sur la grille.
    Symétrique autour de la colonne centrale (13) : 0<->3, 1<->2 */
 const HOUSE_X = [4, 9, 15, 20];
@@ -187,12 +210,25 @@ for (let y = 0; y < HEIGHT; y++) {
     div.style.left = `${x * TILE}px`;
     div.style.top = `${y * TILE}px`;
 
+    // Maison avec image dédiée : on étale un seul visuel (192x128 pour une
+    // largeur 3) sur les tuiles toit+façade, comme un spritesheet découpé.
+    const place = type.house ? ALL_PLACES.find(p => p.key === type.house) : null;
+    const houseImg = place ? HOUSE_IMAGES[place.key] : null;
+    if (houseImg) {
+      const dx = x - place.x;
+      const dy = y - place.y;
+      div.classList.add('has-image');
+      div.style.backgroundImage = `url("${HOUSE_IMAGE_BASE}${houseImg}")`;
+      div.style.backgroundSize = `${place.width * TILE}px ${2 * TILE}px`;
+      div.style.backgroundPosition = `${-dx * TILE}px ${-dy * TILE}px`;
+    }
+
     if (type.kind === "door") {
-      div.innerHTML = `<span class="label">${type.label}</span><span class="icon">${type.icon}</span>`;
+      const iconHtml = houseImg ? '' : `<span class="icon">${type.icon}</span>`;
+      div.innerHTML = `<span class="label">${type.label}</span>${iconHtml}`;
     } else if (type.kind === "roof") {
-      const place = ALL_PLACES.find(p => p.key === type.house);
       const centerX = place.x + Math.floor(place.width / 2);
-      div.innerHTML = (x === centerX) ? `<span class="icon">${type.icon}</span>` : '';
+      div.innerHTML = (!houseImg && x === centerX) ? `<span class="icon">${type.icon}</span>` : '';
     } else if (type.kind === "deco") {
       div.innerHTML = `<span class="icon">${type.icon}</span>`;
     }

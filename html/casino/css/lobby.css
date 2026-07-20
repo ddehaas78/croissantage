@@ -157,6 +157,27 @@ html, body {
 .tile.roof.locked { filter: grayscale(1) brightness(0.75); }
 .tile.facade.locked { filter: grayscale(1) brightness(0.85); }
 
+/* Tuiles avec image de bâtiment dédiée (assets/misc/batiment/) :
+   on enlève le fond couleur + l'ombre interne par défaut pour laisser
+   le visuel respirer, et on garde l'effet "verrouillé" en niveaux de gris. */
+.tile.has-image {
+  background-color: transparent;
+  background-repeat: no-repeat;
+  box-shadow: none;
+}
+.tile.has-image.locked {
+  filter: grayscale(1) brightness(0.8);
+}
+.tile.door.has-image .label {
+  /* Place l'étiquette DANS la zone vide réservée en haut de l'image du
+     bâtiment (le "cadre rouge"), au lieu de flotter au-dessus.
+     -26px = comportement par défaut (juste au-dessus de la tuile porte).
+     Plus la valeur est négative, plus l'étiquette remonte vers le haut de
+     l'image (le toit) ; plus elle se rapproche de 0, plus elle descend vers
+     la porte. Ajuste ce chiffre pour coller pile à ta zone réservée. */
+  top: -48px;
+}
+
 .tile.deco {
   background-color: var(--floor-a);
   display: flex;
