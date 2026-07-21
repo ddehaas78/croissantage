@@ -109,7 +109,7 @@ const Columbus = (() => {
         <div class="cd-pt-scatter-title">⛵ Scatter</div>
         <div class="cd-pt-scatter-body">
           <span class="cd-pt-scatter-emoji">⛵ ⛵ ⛵</span>
-          <span>3 caravelles (rouleaux 1, 3, 5) déclenchent <strong>10 Free Spins</strong>. En Free Spins, elles sont aussi Wild et peuvent retrigger.</span>
+          <span>3 caravelles n'importe où sur la grille déclenchent <strong>10 Free Spins</strong>. En Free Spins, elles sont aussi Wild et peuvent retrigger.</span>
         </div>
       </div>
     `;
@@ -144,7 +144,7 @@ const Columbus = (() => {
 
     container.innerHTML = `
       <div class="cd-wrap">
-        <div id="cd-fs-banner" class="cd-fs-banner" hidden>🎉 FREE SPINS — <span id="cd-fs-count">10</span> tours restants</div>
+        <div id="cd-fs-banner" class="cd-fs-banner" hidden>🎉 FREE SPINS — <span id="cd-fs-count">10</span> tours restants · Gains en cours : <span id="cd-fs-total">0</span> 🪙</div>
 
         <div class="cd-layout">
           <div id="cd-paytable-panel" class="cd-paytable-side" hidden>
@@ -153,7 +153,7 @@ const Columbus = (() => {
             <div id="cd-paytable-content">${buildPaytableHTML(betPerLine)}</div>
           </div>
 
-          <div class="cd-reels-stage">
+          <div class="cd-reels-stage" id="cd-reels-stage">
             <div class="cd-reels" id="cd-reels">
               ${[0, 1, 2, 3, 4].map((i) => `
                 <div class="cd-reel" data-reel="${i}">
@@ -161,12 +161,20 @@ const Columbus = (() => {
                 </div>`).join('')}
             </div>
             <svg id="cd-winlines" class="cd-winlines-svg"></svg>
+            <div class="cd-coin-burst" id="cd-coin-burst"></div>
           </div>
         </div>
 
-        <div class="cd-info-bar">
-          <p id="cd-message" class="game-msg">Placez votre mise et lancez les rouleaux !</p>
-          <div id="cd-wins-list" class="cd-wins-list"></div>
+        <div class="cd-controls-bar">
+          <div class="cd-control">
+            <span class="cd-control-label">Mise / ligne</span>
+            <div class="cd-bet-multipliers" id="cd-bet-multipliers">
+              ${BET_MULTIPLIERS.map((m) => `<button type="button" class="cd-bet-mult-btn${m === betMultiplier ? ' active' : ''}" data-mult="${m}">x${m}</button>`).join('')}
+            </div>
+          </div>
+          <div class="cd-total-bet">Mise totale : <span id="cd-total-bet">${LINES_COUNT * betPerLine}</span> 🪙</div>
+          <button type="button" class="btn-action cd-paytable-btn" id="cd-paytable-btn">Paytable</button>
+          <button type="button" class="btn-action cd-spin-btn" id="cd-spin-btn">LANCER</button>
         </div>
 
         <div id="cd-gamble-panel" class="cd-gamble-panel" hidden>
@@ -184,16 +192,9 @@ const Columbus = (() => {
           </div>
         </div>
 
-        <div class="cd-controls-bar">
-          <div class="cd-control">
-            <span class="cd-control-label">Mise / ligne</span>
-            <div class="cd-bet-multipliers" id="cd-bet-multipliers">
-              ${BET_MULTIPLIERS.map((m) => `<button type="button" class="cd-bet-mult-btn${m === betMultiplier ? ' active' : ''}" data-mult="${m}">x${m}</button>`).join('')}
-            </div>
-          </div>
-          <div class="cd-total-bet">Mise totale : <span id="cd-total-bet">${LINES_COUNT * betPerLine}</span> 🪙</div>
-          <button type="button" class="btn-action cd-paytable-btn" id="cd-paytable-btn">Paytable</button>
-          <button type="button" class="btn-action cd-spin-btn" id="cd-spin-btn">LANCER</button>
+        <div class="cd-info-bar">
+          <p id="cd-message" class="game-msg">Placez votre mise et lancez les rouleaux !</p>
+          <div id="cd-wins-list" class="cd-wins-list"></div>
         </div>
       </div>
     `;
@@ -260,7 +261,7 @@ const Columbus = (() => {
   function toggleControls(enabled) {
     const spinBtn = document.getElementById('cd-spin-btn');
     const paytableBtn = document.getElementById('cd-paytable-btn');
-    if (spinBtn) spinBtn.disabled = !enabled || pendingWin > 0;
+    if (spinBtn) spinBtn.disabled = !enabled || gambling;
     if (paytableBtn) paytableBtn.disabled = !enabled;
     const lockControls = !enabled || inFreeSpins || pendingWin > 0;
     document.querySelectorAll('.cd-bet-mult-btn').forEach((btn) => {
@@ -272,18 +273,90 @@ const Columbus = (() => {
   function updateFreeSpinsBanner() {
     const banner = document.getElementById('cd-fs-banner');
     const countEl = document.getElementById('cd-fs-count');
+    const totalEl = document.getElementById('cd-fs-total');
+    const stage = document.getElementById('cd-reels-stage');
     if (!banner) return;
     if (inFreeSpins) {
       banner.hidden = false;
       if (countEl) countEl.textContent = freeSpinsRemaining;
+      if (totalEl) totalEl.textContent = fmt(freeSpinsTotalWin);
+      if (stage) stage.classList.add('cd-fs-glow');
     } else {
       banner.hidden = true;
+      if (stage) stage.classList.remove('cd-fs-glow');
+    }
+  }
+
+  let coinVariantIndex = 0;
+
+  function spawnCoinBurst(count = 45) {
+    const variant = coinVariantIndex % 2 === 0 ? 'rain' : 'glitter';
+    coinVariantIndex++;
+    if (variant === 'rain') spawnCoinRain(count);
+    else spawnCoinGlitter(count);
+  }
+
+  function spawnCoinRain(count) {
+    const container = document.getElementById('cd-coin-burst');
+    if (!container) return;
+    const stageWidth = container.clientWidth || 700;
+    const coinChars = ['🪙', '🪙', '🪙', '💰', '💵'];
+    for (let i = 0; i < count; i++) {
+      const coin = document.createElement('span');
+      coin.className = 'cd-coin-particle cd-coin-rain';
+      coin.textContent = coinChars[Math.floor(Math.random() * coinChars.length)];
+      const startX = Math.random() * stageWidth;
+      const sway = (Math.random() * 120 - 60);
+      const fall = 420 + Math.random() * 160;
+      const size = 1.1 + Math.random() * 1.1;
+      const dur = 1.1 + Math.random() * 0.9;
+      const spin = 360 + Math.random() * 540;
+      coin.style.left = `${startX}px`;
+      coin.style.setProperty('--sway', `${sway}px`);
+      coin.style.setProperty('--fall', `${fall}px`);
+      coin.style.setProperty('--size', `${size}rem`);
+      coin.style.setProperty('--dur', `${dur}s`);
+      coin.style.setProperty('--spin', `${spin}deg`);
+      coin.style.animationDelay = `${Math.random() * 0.5}s`;
+      container.appendChild(coin);
+      setTimeout(() => coin.remove(), (dur + 0.6) * 1000);
+    }
+  }
+
+  function spawnCoinGlitter(count) {
+    const container = document.getElementById('cd-coin-burst');
+    if (!container) return;
+    const coinChars = ['🪙', '🪙', '💰', '✨', '✨'];
+    for (let i = 0; i < count; i++) {
+      const coin = document.createElement('span');
+      coin.className = 'cd-coin-particle cd-coin-glitter';
+      coin.textContent = coinChars[Math.floor(Math.random() * coinChars.length)];
+      const top = Math.random() * 90;
+      const left = Math.random() * 94;
+      const size = 1 + Math.random() * 1.3;
+      const dur = 0.9 + Math.random() * 0.8;
+      const spin = Math.random() * 360 - 180;
+      coin.style.top = `${top}%`;
+      coin.style.left = `${left}%`;
+      coin.style.setProperty('--size', `${size}rem`);
+      coin.style.setProperty('--dur', `${dur}s`);
+      coin.style.setProperty('--spin', `${spin}deg`);
+      coin.style.animationDelay = `${Math.random() * 0.6}s`;
+      container.appendChild(coin);
+      setTimeout(() => coin.remove(), (dur + 0.8) * 1000);
     }
   }
 
   /* ---------------- Spin ---------------- */
   function spin() {
-    if (spinning || pendingWin > 0) return;
+    if (spinning || gambling) return;
+
+    if (pendingWin > 0) {
+      // La personne relance directement sans passer par "Encaisser" : on encaisse pour elle
+      Wallet.add(pendingWin);
+      pendingWin = 0;
+      hideGamblePanel();
+    }
 
     if (inFreeSpins) {
       if (freeSpinsRemaining <= 0) return;
@@ -457,8 +530,14 @@ const Columbus = (() => {
   }
 
   function checkScatterTrigger(finalGrid) {
-    const hasScatter = (reel) => reel.includes('SCATTER');
-    return hasScatter(finalGrid[0]) && hasScatter(finalGrid[2]) && hasScatter(finalGrid[4]);
+    // Compte le nombre total de caravelles sur toute la grille (peu importe la position)
+    let scatterCount = 0;
+    finalGrid.forEach((reel) => {
+      reel.forEach((id) => {
+        if (id === 'SCATTER') scatterCount++;
+      });
+    });
+    return scatterCount >= 3;
   }
 
   /* ---------------- Résolution du tour ---------------- */
@@ -490,13 +569,14 @@ const Columbus = (() => {
     if (inFreeSpins) {
       freeSpinsRemaining -= 1;
       freeSpinsTotalWin += totalWin;
-      if (totalWin > 0) Wallet.add(totalWin);
+      if (totalWin > 0) spawnCoinBurst(Math.min(70, 25 + wins.length * 10));
 
       if (scatterTriggered) {
         freeSpinsRemaining += 10;
-        setMessage(`⛵ Nouvelles caravelles ! +10 Free Spins (${fmt(totalWin)} 🪙 sur ce tour).`);
+        spawnCoinBurst(60);
+        setMessage(`⛵ Nouvelles caravelles ! +10 Free Spins (${fmt(totalWin)} 🪙 mis de côté sur ce tour).`);
       } else if (totalWin > 0) {
-        setMessage(`Gain : ${fmt(totalWin)} 🪙`);
+        setMessage(`Gain : ${fmt(totalWin)} 🪙 mis de côté (total : ${fmt(freeSpinsTotalWin)} 🪙)`);
       } else {
         setMessage('Aucun gain sur ce tour.');
       }
@@ -506,7 +586,18 @@ const Columbus = (() => {
       if (freeSpinsRemaining <= 0) {
         inFreeSpins = false;
         updateFreeSpinsBanner();
-        setMessage(`Free Spins terminés ! Gain total des tours gratuits : ${fmt(freeSpinsTotalWin)} 🪙`);
+
+        spinning = false;
+
+        if (freeSpinsTotalWin > 0) {
+          pendingWin = freeSpinsTotalWin;
+          setMessage(`🎉 Free Spins terminés ! Gain total : ${fmt(freeSpinsTotalWin)} 🪙. Encaisser ou tenter de doubler ?`);
+          offerGamble();
+        } else {
+          setMessage('Free Spins terminés ! Aucun gain sur ces tours.');
+          finishRound();
+        }
+        return;
       }
 
       spinning = false;
@@ -520,6 +611,7 @@ const Columbus = (() => {
       freeSpinsRemaining = 10;
       freeSpinsTotalWin = 0;
       updateFreeSpinsBanner();
+      spawnCoinBurst(60);
       setMessage('⛵⛵⛵ 3 Caravelles ! 10 Free Spins gagnés !');
     } else if (totalWin > 0) {
       setMessage(wins.length > 1 ? `Gagné sur ${wins.length} lignes !` : 'Ligne gagnante !');
