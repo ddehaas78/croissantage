@@ -12,23 +12,14 @@
 </head>
 <body>
 
-  <div class="game-topbar">
-    <a class="game-back" href="../lobby.html">&larr; Retour au lobby</a>
-    <div class="game-title">🗺️ Columbus Deluxe</div>
-    <div class="game-topbar-right">
-      <button class="btn btn-ghost recharge-btn" onclick="Wallet.add(500)">+ Recharger</button>
-      <div class="topbar-balance">
-        <span class="coin"></span>
-        <span data-wallet-balance>0</span>
-      </div>
-    </div>
-  </div>
+  <div class="game-topbar" data-topbar data-title="🗺️ Columbus Deluxe"></div>
 
   <div id="columbus">
     <div class="game-body"></div>
   </div>
 
   <script src="../js/wallet.js"></script>
+  <script src="../js/topbar.js"></script>
   <script src="../js/drunk.js"></script>
   <script src="../js/columbus.js"></script>
 </body>
