@@ -73,6 +73,19 @@ const HOUSE_IMAGES = {
   "future-bottom-2": "future-bottom-2.png",
 };
 
+/* Texture du tapis rouge (allées + boulevard), extraite du tilesheet fourni.
+   Même logique de chemin que HOUSE_IMAGE_BASE : résolu en JS via
+   style.backgroundImage, donc relatif à lobby.html. */
+const CARPET_IMAGE = "assets/misc/lobby/sol/carpet-rouge.png";
+
+/* Décorations en image (au lieu d'un simple emoji). Même principe : chemin
+   résolu relativement à lobby.html. */
+const DECO_IMAGE_BASE = "assets/misc/lobby/deco/";
+const DECO_IMAGES = {
+  slot: "slot-deco.png",
+  plant: "plant-deco.png",
+};
+
 /* Position (colonne de départ, largeur 3) de chaque maison de jeu sur la grille.
    Symétrique autour de la colonne centrale (13) : 0<->3, 1<->2 */
 const HOUSE_X = [4, 9, 15, 20];
@@ -157,11 +170,12 @@ const DECO = {
   TREE: 3,
   LAMP: 4,
   FOUNTAIN: 5,
+  SLOT: 6,
 };
 const decoSpots = [
   [2, 3, DECO.TREE], [7, 3, DECO.TREE], [19, 3, DECO.TREE], [24, 3, DECO.TREE],
   [5, 11, DECO.TREE], [21, 11, DECO.TREE],
-  [12, 4, DECO.LAMP], [14, 4, DECO.LAMP],
+  [12, 4, DECO.SLOT], [14, 4, DECO.SLOT],
   [13, 4, DECO.FOUNTAIN],
 ];
 decoSpots.forEach(([x, y, code]) => { colliders[y][x] = code; });
@@ -171,9 +185,10 @@ const tileTypes = {
   0: { collide: false, kind: "floor" },
   1: { collide: true,  kind: "wall" },
   [CARPET]: { collide: false, kind: "carpet" },
-  [DECO.TREE]:     { collide: true, kind: "deco", icon: "🌴" },
+  [DECO.TREE]:     { collide: true, kind: "deco", image: DECO_IMAGES.plant },
   [DECO.LAMP]:     { collide: true, kind: "deco", icon: "💡" },
   [DECO.FOUNTAIN]: { collide: true, kind: "deco", icon: "⛲" },
+  [DECO.SLOT]:     { collide: true, kind: "deco", image: DECO_IMAGES.slot },
 };
 function registerHouseTypes(house) {
   tileTypes[house.doorCode] = {
@@ -229,8 +244,21 @@ for (let y = 0; y < HEIGHT; y++) {
     } else if (type.kind === "roof") {
       const centerX = place.x + Math.floor(place.width / 2);
       div.innerHTML = (!houseImg && x === centerX) ? `<span class="icon">${type.icon}</span>` : '';
+    } else if (type.kind === "floor") {
+      div.classList.add('has-image');
+      div.style.backgroundImage = `url("${CARPET_IMAGE}")`;
+      div.style.backgroundSize = `${TILE}px ${TILE}px`;
     } else if (type.kind === "deco") {
-      div.innerHTML = `<span class="icon">${type.icon}</span>`;
+      if (type.image) {
+        div.classList.add('has-image', 'deco-image');
+        div.style.backgroundImage = `url("${DECO_IMAGE_BASE}${type.image}")`;
+        div.style.backgroundSize = 'contain';
+        div.style.backgroundRepeat = 'no-repeat';
+        div.style.backgroundPosition = 'center bottom';
+        div.style.imageRendering = 'pixelated';
+      } else {
+        div.innerHTML = `<span class="icon">${type.icon}</span>`;
+      }
     }
     mapEl.appendChild(div);
   }
