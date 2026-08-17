@@ -21,10 +21,10 @@ const TILE = 64;
 /* Chaque jeu a : une porte (walkable + effet), un toit (bloquant, décoratif)
    et des façades (bloquantes) de part et d'autre de la porte. */
 const GAMES = [
-  { key: "blackjack", name: "Blackjack",        icon: "🃏", href: "./html/blackjack.html" },
-  { key: "roulette",  name: "Roulette",         icon: "🎡", href: "./html/roulette.html" },
-  { key: "poker",     name: "Poker",            icon: "♠️", href: "./html/poker.html" },
-  { key: "slots",     name: "Machines à sous",  icon: "🎰", href: "./html/columbus.html" },
+  { key: "blackjack", name: "Blackjack",        icon: "🃏", href: "./games/blackjack/blackjack.html" },
+  { key: "roulette",  name: "Roulette",         icon: "🎡", href: "./games/roulette/roulette.html" },
+  { key: "poker",     name: "Poker",            icon: "♠️", href: "./games/poker/poker.html" },
+  { key: "slots",     name: "Machines à sous",  icon: "🎰", href: "./games/columbus/columbus.html" },
 ];
 GAMES.forEach((g, i) => {
   g.doorCode = 10 + i;   // 10-13
@@ -38,8 +38,8 @@ GAMES.forEach((g, i) => {
 const EXTRA_HOUSES = [
   { key: "future-left",     name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 2,  y: 6 },
   { key: "future-right",    name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 22, y: 6 },
-  { key: "baccara",         name: "Baccara",            icon: "🎴", href: "./html/baccara.html", x: 7,  y: 8 },
-  { key: "bar",             name: "Bar",                icon: "🍸", href: "./html/bar.html",  x: 12, y: 8 },
+  { key: "baccara",         name: "Baccara",            icon: "🎴", href: "./games/baccara/baccara.html", x: 7,  y: 8 },
+  { key: "bar",             name: "Bar",                icon: "🍸", href: "./games/bar/bar.html",  x: 12, y: 8 },
   { key: "future-bottom-2", name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 17, y: 8 },
 ];
 EXTRA_HOUSES.forEach((e, i) => {

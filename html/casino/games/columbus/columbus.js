@@ -7,16 +7,16 @@
 const Columbus = (() => {
   /* ---------------- Table des symboles (paytable) ---------------- */
   const SYMBOLS = {
-    WILD:    { id: 'WILD',    img: '../assets/columbus/Columbus.png', name: 'Christophe Colomb (Wild)', pay: { 2: 10, 3: 100, 4: 1000, 5: 5000 } },
-    QUEEN:   { id: 'QUEEN',   img: '../assets/columbus/Isabelle.png', name: 'Reine Isabelle',           pay: { 2: 5,  3: 50,  4: 200,  5: 1000 } },
-    NECKLACE:{ id: 'NECKLACE',img: '../assets/columbus/Collier.png',  name: "Collier d'or",             pay: { 2: 5,  3: 25,  4: 100,  5: 500 } },
-    SEXTANT: { id: 'SEXTANT', img: '../assets/columbus/Sextant.png',  name: 'Sextant',                  pay: { 2: 5,  3: 15,  4: 75,   5: 250 } },
-    CARD_A:  { id: 'CARD_A',  img: '../assets/columbus/A.png',        name: 'As',                       pay: { 3: 10, 4: 40,  5: 150 } },
-    CARD_K:  { id: 'CARD_K',  img: '../assets/columbus/K.png',        name: 'Roi',                      pay: { 3: 10, 4: 40,  5: 150 } },
-    CARD_Q:  { id: 'CARD_Q',  img: '../assets/columbus/Q.png',        name: 'Dame',                     pay: { 3: 10, 4: 40,  5: 150 } },
-    CARD_J:  { id: 'CARD_J',  img: '../assets/columbus/J.png',        name: 'Valet',                    pay: { 3: 5,  4: 20,  5: 100 } },
-    CARD_10: { id: 'CARD_10', img: '../assets/columbus/10.png',       name: 'Dix',                      pay: { 3: 5,  4: 20,  5: 100 } },
-    SCATTER: { id: 'SCATTER', img: '../assets/columbus/Bateau.png', name: 'Caravelle (Scatter)',      pay: {} },
+    WILD:    { id: 'WILD',    img: '../../assets/columbus/Columbus.png', name: 'Christophe Colomb (Wild)', pay: { 2: 10, 3: 100, 4: 1000, 5: 5000 } },
+    QUEEN:   { id: 'QUEEN',   img: '../../assets/columbus/Isabelle.png', name: 'Reine Isabelle',           pay: { 2: 5,  3: 50,  4: 200,  5: 1000 } },
+    NECKLACE:{ id: 'NECKLACE',img: '../../assets/columbus/Collier.png',  name: "Collier d'or",             pay: { 2: 5,  3: 25,  4: 100,  5: 500 } },
+    SEXTANT: { id: 'SEXTANT', img: '../../assets/columbus/Sextant.png',  name: 'Sextant',                  pay: { 2: 5,  3: 15,  4: 75,   5: 250 } },
+    CARD_A:  { id: 'CARD_A',  img: '../../assets/columbus/A.png',        name: 'As',                       pay: { 3: 10, 4: 40,  5: 150 } },
+    CARD_K:  { id: 'CARD_K',  img: '../../assets/columbus/K.png',        name: 'Roi',                      pay: { 3: 10, 4: 40,  5: 150 } },
+    CARD_Q:  { id: 'CARD_Q',  img: '../../assets/columbus/Q.png',        name: 'Dame',                     pay: { 3: 10, 4: 40,  5: 150 } },
+    CARD_J:  { id: 'CARD_J',  img: '../../assets/columbus/J.png',        name: 'Valet',                    pay: { 3: 5,  4: 20,  5: 100 } },
+    CARD_10: { id: 'CARD_10', img: '../../assets/columbus/10.png',       name: 'Dix',                      pay: { 3: 5,  4: 20,  5: 100 } },
+    SCATTER: { id: 'SCATTER', img: '../../assets/columbus/Bateau.png', name: 'Caravelle (Scatter)',      pay: {} },
   };
 
   /* ---------------- Les 10 lignes de paiement (indices de rangée 0-2 par rouleau) ---------------- */

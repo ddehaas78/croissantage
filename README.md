@@ -1,1 +1,351 @@
-Debut Readme Aucune idée quoi mettre !
+# README.md — Croissantage : le Casino Secret
+
+Ce fichier documente comment est construit le casino secret du site de croissantage,
+pour que je/tu puisse(s) créer un **nouveau jeu** cohérent avec l'existant (thème,
+structure de fichiers, conventions de code) sans avoir à redécouvrir l'architecture
+à chaque fois.
+
+⚠️ Aucun vrai argent : tout est en jetons fictifs (`Wallet`), stockés en `localStorage`.
+
+---
+
+## 1. Vue d'ensemble
+
+Le joueur arrive sur `hihihi.html` (écran d'entrée), clique sur "Entrer au Casino",
+et atterrit sur `lobby.html` : un petit village vu de dessus façon vieux Pokémon
+(GBA/DS), où chaque jeu est une maison. Le joueur se déplace (clavier ZQSD/flèches
+ou clic pathfinding) et entre dans une maison pour lancer le jeu correspondant,
+qui s'ouvre sur sa propre page HTML.
+
+Deux ambiances visuelles cohabitent volontairement :
+- **Le lobby** : pixel art rétro (police "Press Start 2P", palette bordeaux `#12070a`/or).
+- **Les pages de jeu** : thème "casino chic" (or/bordeaux/émeraude, polices Cinzel + Poppins).
+
+---
+
+## 2. Arborescence
+
+```
+/
+├── hihihi.html          → écran d'entrée du site
+├── lobby.html            → le village / plan du casino
+├── assets/
+│   ├── columbus/          → sprites/cartes spécifiques au jeu Columbus
+│   ├── misc/
+│   │   ├── bar/            → image du barman
+│   │   └── batiment/        → une image par maison du lobby (toit+façade)
+│   └── player/             → spritesheets des skins jouables (grille 4x4)
+├── boisson/               → une image par cocktail (utilisé par bar.js)
+├── core/                  → tout le transverse (anciennement css/ + js/ à la racine)
+│   ├── main.css             → variables globales, boutons, layout de base
+│   ├── game-page.css        → habillage commun aux pages de jeu (topbar, .game-body)
+│   ├── game-stub.css        → écran "jeu pas encore prêt" (placeholder)
+│   ├── drunk.css            → effet visuel d'ivresse (partagé)
+│   ├── drunk.js             → niveau d'ivresse (transverse)
+│   ├── lobby.css            → styles du village
+│   ├── lobby.js             → logique du village (déplacement, portes, collisions)
+│   ├── skins.js             → registre + choix du skin joueur (transverse)
+│   ├── topbar.js            → génère le bandeau du haut sur les pages de jeu (transverse)
+│   └── wallet.js            → solde de jetons (transverse)
+└── games/
+    └── <jeu>/                → un dossier par jeu (baccara, bar, blackjack, columbus, poker, roulette, ...)
+            <jeu>.html
+            <jeu>.css
+            <jeu>.js
+```
+
+**Changement important par rapport à l'ancienne structure** : il n'y a plus de
+dossiers `css/` et `js/` séparés à la racine, ni de dossier `html/` commun. Tout
+le transverse vit dans `core/`, et **chaque jeu a désormais son propre dossier**
+sous `games/<jeu>/` contenant ses trois fichiers (`<jeu>.html`, `<jeu>.css`,
+`<jeu>.js`) côte à côte, au lieu d'être éclatés dans `html/`, `css/`, `js/`.
+
+**Convention de chemins (mise à jour)** : les pages de jeu vivent maintenant dans
+`games/<jeu>/`, soit **deux niveaux** sous la racine (contre un seul niveau avant,
+avec `html/<jeu>.html`). Tous leurs liens vers `core/`, `assets/`, `boisson/`
+commencent donc désormais par `../../` (et non plus `../`). Le lobby et
+`hihihi.html` restent à la racine, donc toujours pas de préfixe pour eux.
+
+⚠️ Piège classique en migrant/créant un jeu : ne pas oublier de passer les chemins
+de `../css/...`, `../js/...` à `../../core/...`, et `../assets/...` à `../../assets/...`.
+
+Ce piège ne concerne pas que le HTML (`<link>`/`<script>`) : certains jeux
+définissent aussi des **constantes de préfixe de chemin en JS** pour construire
+des URLs dynamiquement vers `assets/`, `boisson/`, etc. (ex. `SKIN_ROOT_PREFIX`
+dans `bar.js`, utilisée avec `Skins.urlFor()` — voir section 3). Ces constantes
+suivent la même règle de profondeur (`../../` depuis `games/<jeu>/`), mais elles
+ne sont pas centralisées : chaque jeu les définit lui-même, donc il faut penser à
+les vérifier dans le JS de chaque jeu, pas seulement dans son HTML.
+
+---
+
+## 3. Systèmes transverses (partagés par tous les jeux)
+
+Ces fichiers (tous dans `core/`) doivent être inclus (dans cet ordre,
+`wallet.js`/`drunk.js`/`skins.js` avant le script du jeu) sur **toute nouvelle
+page de jeu** selon ses besoins :
+
+### `core/wallet.js` → objet global `Wallet`
+Solde de jetons fictifs, persisté en `localStorage`. API principale :
+```js
+Wallet.get()             // solde actuel
+Wallet.canAfford(amount) // bool
+Wallet.add(amount)
+Wallet.subtract(amount)  // false si solde insuffisant, sinon débite et renvoie true
+Wallet.recharge()        // remonte le solde si sous le seuil (voir RECHARGE_THRESHOLD)
+Wallet.refreshUI()       // à appeler après avoir injecté du HTML avec data-wallet-balance
+```
+Met à jour automatiquement tout élément `[data-wallet-balance]` et
+`.topbar-balance` (flash animé) à chaque changement.
+
+### `core/drunk.js` → objet global `Drunk`
+Niveau d'ivresse global (0-100), persisté, redescend tout seul dans le temps
+(2 points / 4s), applique des classes `drunk-1` à `drunk-4` sur `<body>` (gérées
+visuellement par `drunk.css` : flou + tangage léger). API :
+```js
+Drunk.addDose(amount)     // amount peut être négatif (café, eau...)
+Drunk.getLevel()
+Drunk.stateLabel(level)   // "Sobre" / "Pompette" / "Éméché" / "Ivre" / "Complètement bourré"
+Drunk.onChange(fn)
+```
+Inclure `<link rel="stylesheet" href="../../core/drunk.css">` et
+`<script src="../../core/drunk.js">` sur **toutes** les pages de jeu, même celles
+qui ne servent pas d'alcool — l'effet doit suivre le joueur partout tant qu'il
+n'est pas redescendu à 0.
+
+### `core/skins.js` → objet global `Skins`
+Registre des skins jouables (fichiers dans `assets/player/`, grille spritesheet 4x4).
+```js
+Skins.getAll()
+Skins.getCurrentId()
+Skins.setCurrentId(id)
+Skins.urlFor(id, rootPrefix)  // rootPrefix: '' à la racine, '../../' depuis /games/<jeu>/
+```
+Utile seulement si le nouveau jeu affiche/permet de changer le skin (comme le bar).
+
+Le `rootPrefix` doit correspondre à la profondeur réelle du dossier du jeu par
+rapport à la racine (`../../` depuis `games/<jeu>/`). Ce n'est **pas** déduit
+automatiquement par `skins.js` : chaque jeu qui affiche des skins définit en
+général sa propre constante en haut de son fichier JS (ex. `SKIN_ROOT_PREFIX`
+dans `bar.js`) qu'il passe ensuite à `Skins.urlFor()`.
+
+### `core/topbar.js`
+Génère automatiquement le bandeau du haut (retour lobby, titre, bouton recharge,
+solde) sur tout élément `[data-topbar]`. **Ne pas écrire le HTML du bandeau à la
+main** : il suffit de placer la balise avec les bons attributs :
+```html
+<div class="game-topbar" data-topbar
+     data-title="🎡 Roulette"
+     data-back="../../lobby.html"                     <!-- optionnel, défaut : ../../lobby.html -->
+     data-recharge-label="+ Recharger"                <!-- optionnel -->
+     data-recharge-class="btn btn-ghost recharge-btn"><!-- optionnel -->
+</div>
+<script src="../../core/topbar.js"></script>
+```
+
+---
+
+## 4. Anatomie d'un jeu — exemple de référence : Roulette
+
+Chaque jeu suit le même trio de fichiers, désormais réunis dans un seul dossier
+**`games/<jeu>/<jeu>.html` + `games/<jeu>/<jeu>.css` + `games/<jeu>/<jeu>.js`**.
+La roulette (`games/roulette/`) est l'exemple le plus complet à suivre.
+
+### 4.1 `games/roulette/roulette.html` — le squelette de page
+
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roulette - Casino</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../core/main.css">
+  <link rel="stylesheet" href="../../core/game-page.css">
+  <link rel="stylesheet" href="../../core/drunk.css">
+  <link rel="stylesheet" href="roulette.css">
+</head>
+<body>
+
+  <div class="game-topbar" data-topbar data-title="🎡 Roulette"></div>
+
+  <div id="roulette">
+    <div class="game-body"></div>
+  </div>
+
+  <script src="../../core/wallet.js"></script>
+  <script src="../../core/topbar.js"></script>
+  <script src="../../core/drunk.js"></script>
+  <script src="roulette.js"></script>
+</body>
+</html>
+```
+
+**Points à reproduire pour un nouveau jeu** :
+- `<body>` quasi vide : un `<div class="game-topbar" data-topbar ...>` + un conteneur
+  racine `id="<jeu>"` contenant un `<div class="game-body"></div>` **vide**.
+- Tout le contenu du jeu est **injecté en JS** via `.innerHTML`, jamais écrit en dur
+  dans le HTML (voir 4.3).
+- Ordre des scripts : `../../core/wallet.js` → `../../core/topbar.js` →
+  `../../core/drunk.js` → (`../../core/skins.js` si besoin) → `<jeu>.js` (sans
+  préfixe, car dans le même dossier).
+- CSS : `../../core/main.css` puis `../../core/game-page.css` puis
+  `../../core/drunk.css` puis `<jeu>.css` en dernier — ce dernier **sans**
+  préfixe puisqu'il est désormais colocalisé dans le même dossier que le HTML
+  (pour pouvoir surcharger si besoin).
+
+### 4.2 `games/roulette/roulette.css` — conventions de style
+
+- Toutes les couleurs viennent des **variables CSS de `core/main.css`** (`var(--gold)`,
+  `var(--panel)`, `var(--emerald-bright)`, `var(--cream-dim)`, etc.) — jamais de
+  couleur en dur qui casse le thème.
+- Classes préfixées par les initiales du jeu pour éviter les collisions :
+  `rl-*` pour roulette, `bar-*` pour le bar. **Un nouveau jeu doit préfixer ses
+  classes de la même façon** (ex : `bj-*` pour blackjack).
+- `.game-msg` (message de statut), `.msg-good` / `.msg-bad` / `.msg-warn` sont des
+  classes génériques réutilisables pour les retours au joueur.
+- Un bloc `@media (max-width: 860px)` puis `@media (max-width: 480px)` en fin de
+  fichier pour le responsive (empilement vertical, tailles réduites).
+
+### 4.3 `games/roulette/roulette.js` — le pattern de module
+
+Chaque jeu est un **IIFE nommé** exposant une petite API publique, construit
+entièrement en JS et injecté dans `.game-body` :
+
+```js
+const Roulette = (() => {
+  // --- constantes de jeu (règles, valeurs de jetons, tables de paiement...) ---
+
+  let built = false; // empêche une double construction du DOM
+
+  function init() {
+    const container = document.querySelector('#roulette .game-body');
+    if (!container || built) return;
+    built = true;
+
+    container.innerHTML = `...HTML du plateau généré ici...`;
+
+    bindEvents(container);
+    Wallet.refreshUI();
+  }
+
+  function bindEvents(container) { /* addEventListener sur les éléments injectés */ }
+
+  // --- logique de jeu : placer une mise, lancer, résoudre, payer via Wallet ---
+
+  return { init, spin }; // API publique minimale
+})();
+
+document.addEventListener('DOMContentLoaded', () => Roulette.init());
+```
+
+Règles à suivre pour un nouveau jeu :
+1. **Un seul IIFE global** nommé comme le jeu (`Blackjack`, `Baccara`, ...).
+2. `init()` vérifie `built` pour ne jamais reconstruire le DOM deux fois, cible
+   `#<jeu> .game-body`, injecte le HTML, bind les événements, puis appelle
+   `Wallet.refreshUI()`.
+3. Les mises/achats passent **toujours** par `Wallet.canAfford()` avant de débiter
+   avec `Wallet.subtract()`, et les gains via `Wallet.add()`. Ne jamais modifier
+   le solde autrement.
+4. Un message de statut textuel (`#<jeu>-message` ou équivalent) informe le joueur
+   à chaque action (mise placée, solde insuffisant, résultat...).
+5. `toggleControls(enabled)` désactive les boutons pendant une animation/résolution
+   pour éviter les actions concurrentes (voir `spinning` dans roulette.js).
+6. Si le jeu sert de l'alcool ou pourrait affecter l'ivresse : appeler
+   `Drunk.addDose(...)`. Sinon inclure quand même `drunk.css`/`drunk.js` pour que
+   l'effet visuel persiste si le joueur est déjà éméché en arrivant.
+
+### 4.4 Cas particulier : jeu incomplet (ex. `games/poker/`)
+
+Un jeu peut exister comme dossier avec seulement `<jeu>.html` (pas encore de
+`.css`/`.js` dédiés, comme actuellement `games/poker/poker.html`). Dans ce cas,
+préférer `locked: true` dans le lobby (voir section 5) plutôt que de publier un
+lien mort ou une page cassée, ou utiliser `game-stub.css` pour afficher un écran
+"bientôt disponible" en attendant.
+
+---
+
+## 5. Ajouter un jeu à la carte du lobby (`core/lobby.js`)
+
+Le lobby gère une grille de collisions (`colliders`) où chaque case a un code.
+Pour ajouter une nouvelle maison de jeu :
+
+1. **Jeu principal** (façade du haut, avec porte) → ajouter une entrée dans le
+   tableau `GAMES` :
+   ```js
+   { key: "monjeu", name: "Mon Jeu", icon: "🎲", href: "./games/monjeu/monjeu.html" }
+   ```
+   Les codes `doorCode`/`roofCode`/`facadeCode` sont attribués automatiquement.
+   Il faut aussi une position en `x` dans `HOUSE_X` (largeur de maison = 3 cases).
+
+2. **Bâtiment annexe** (bar, baccara, ou futur emplacement type "Bientôt
+   disponible" — voir les visuels `future-bottom-2.png` / `future-left.png` /
+   `future-right.png` dans `assets/misc/batiment/`) → ajouter une entrée dans
+   `EXTRA_HOUSES` avec `x`/`y` explicites.
+
+3. **Image du bâtiment** (optionnelle mais recommandée) : déposer un visuel
+   `192x128px` (largeur_maison × TILE=64, hauteur 2×TILE) dans
+   `assets/misc/batiment/` et l'enregistrer dans `HOUSE_IMAGES` :
+   ```js
+   monjeu: "monjeu.png",
+   ```
+   Sans image, le lobby affiche une case colorée générique + l'icône emoji.
+   (Un visuel `slots.png` existe déjà dans `assets/misc/batiment/` sans dossier
+   `games/slots/` correspondant pour l'instant — probablement un jeu prévu mais
+   pas encore implémenté.)
+
+4. **Verrouillage temporaire** : ajouter `locked: true` à l'entrée — la maison
+   s'affiche en niveaux de gris, la porte ne redirige pas, et le texte affiché
+   devient `"<name>..."` au lieu de `"Entrée : <name>"`.
+
+5. Le pathfinding (Dijkstra) et les collisions se recalculent automatiquement à
+   partir de `colliders` : pas besoin de toucher à `PathFind`.
+
+---
+
+## 6. Charte graphique (`core/main.css`)
+
+Variables CSS disponibles partout (déclarées sur `:root`) :
+
+| Variable | Usage |
+|---|---|
+| `--gold`, `--gold-bright`, `--gold-dim` | Accents dorés, bordures, texte important |
+| `--burgundy`, `--burgundy-bright` | Rouge bordeaux (danger, roulette rouge) |
+| `--emerald`, `--emerald-bright` | Vert tapis / zéro à la roulette |
+| `--cream`, `--cream-dim` | Texte principal / texte secondaire |
+| `--panel`, `--panel-light` | Fonds de panneaux/cartes |
+| `--black`, `--near-black` | Fond de page |
+| `--font-display` (Cinzel) | Titres, montants, boutons d'action |
+| `--font-body` (Poppins) | Texte courant |
+| `--radius`, `--shadow` | Arrondis et ombres cohérents |
+
+Classes utilitaires prêtes à l'emploi : `.btn` + `.btn-primary` / `.btn-ghost` /
+`.btn-danger`, `.gold-text` (dégradé texte doré), `.modal-backdrop` + `.modal`,
+`.hidden`, `.chip-icon`.
+
+Le lobby (`core/lobby.css`) utilise volontairement une **autre** police
+("Press Start 2P") et sa propre palette bordeaux/or en pixel art — ne pas
+mélanger les deux styles entre le village et les pages de jeu.
+
+---
+
+## 7. Checklist pour créer un nouveau jeu
+
+1. Créer un dossier `games/<jeu>/` contenant `<jeu>.html` sur le modèle de
+   `games/roulette/roulette.html` (topbar + `.game-body` vide).
+2. Créer `games/<jeu>/<jeu>.css` avec préfixe de classes dédié, variables de
+   `core/main.css` uniquement.
+3. Créer `games/<jeu>/<jeu>.js` : IIFE `const <Jeu> = (() => {...})()`, `init()`
+   qui injecte dans `.game-body`, mises/paiements via `Wallet`, message de
+   statut, `toggleControls`.
+4. Ajouter le jeu dans `GAMES` ou `EXTRA_HOUSES` de `core/lobby.js` (+
+   éventuellement une image dans `assets/misc/batiment/`).
+5. Vérifier les chemins relatifs : `../../core/`, `../../assets/`, `../../boisson/`
+   depuis `games/<jeu>/` (deux niveaux, et non plus un seul comme dans l'ancien
+   `html/<jeu>.html`) ; le CSS/JS du jeu lui-même est référencé sans préfixe
+   puisqu'il est dans le même dossier.
+6. Tester : le solde (`Wallet`) doit se mettre à jour dans la topbar, et si le jeu
+   n'est pas encore prêt, préférer `locked: true` dans le lobby plutôt que de
+   publier une page cassée (ou utiliser `game-stub.css` pour un écran "bientôt
+   disponible").

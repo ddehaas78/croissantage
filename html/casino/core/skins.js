@@ -21,6 +21,7 @@ const Skins = (() => {
     { id: 'cynthia', name: 'Cynthia', file: 'cynthia.png' },
     { id: 'giovanni', name: 'Giovanni', file: 'giovanni.png' },
     { id: 'phyre', name: 'Phyre', file: 'phyre.png' },
+    { id: 'poke-maniac', name: 'Poke-maniac', file: 'poke-maniac-1.png' },
 
     // Futurs skins (achetables dans le shop) : ajoute-les ici, ex.
     // { id: 'pirate', name: 'Pirate', file: 'pirate.png' },

@@ -17,7 +17,7 @@
   function renderTopbars() {
     document.querySelectorAll('[data-topbar]').forEach((el) => {
       const title = el.dataset.title || '';
-      const back = el.dataset.back || '../lobby.html';
+      const back = el.dataset.back || '../../lobby.html';
       const rechargeLabel = el.dataset.rechargeLabel || '+ Recharger';
       const rechargeClass = el.dataset.rechargeClass || 'btn btn-ghost recharge-btn';
 

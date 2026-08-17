@@ -90,7 +90,7 @@ const Bar = (() => {
         html += `<button type="button" class="bar-real-drink" data-drink="${drink.id}">
           <span class="bar-real-drink-glow" style="background:${accent};"></span>
           <span class="bar-real-drink-emoji">
-            <img src="../boisson/${drink.id}.png" alt="${drink.name}" loading="lazy">
+            <img src="../../boisson/${drink.id}.png" alt="${drink.name}" loading="lazy">
           </span>
           <span class="bar-real-drink-tag">
             <span class="bar-real-drink-name">${drink.name}</span>
@@ -141,7 +141,7 @@ const Bar = (() => {
   // --- Sélecteur de skin ---
   // rootPrefix '../' car bar.html est dans /html/, un niveau sous la racine
   // où se trouve assets/player/.
-  const SKIN_ROOT_PREFIX = '../';
+  const SKIN_ROOT_PREFIX = '../../';
 
   function buildSkinPanelHTML() {
     if (typeof Skins === 'undefined') return '';
@@ -230,7 +230,7 @@ const Bar = (() => {
           <div class="bar-shelves">${buildShelvesHTML()}</div>
 
           <div class="bar-bartender">
-            <img class="bar-bartender-img" src="../assets/misc/bar/barman.png" alt="Le barman">
+            <img class="bar-bartender-img" src="../../assets/misc/bar/barman.png" alt="Le barman">
           </div>
 
           <div class="bar-counter">
