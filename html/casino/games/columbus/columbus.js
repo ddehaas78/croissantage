@@ -69,25 +69,33 @@ const Columbus = (() => {
     return n.toLocaleString('fr-FR');
   }
 
-  // Montant d'un jeton pour une mise "par ligne" : pour un jeton fixe c'est
-  // sa valeur telle quelle ; pour un jeton fraction, on prend cette fraction
-  // du solde total puis on la répartit sur les 10 lignes actives.
+  // Montant d'un jeton pour la mise TOTALE (les 10 lignes sont fixes et
+  // toujours actives, donc le jeton représente directement ce qui sera
+  // débité du solde) : pour un jeton fixe c'est sa valeur telle quelle ;
+  // pour un jeton fraction, on prend cette fraction du solde total.
   function chipAmount(def) {
     if (def.type === 'fixed') return def.value;
-    return Math.max(1, Math.floor((Wallet.get() * def.fraction) / LINES_COUNT));
+    return Math.max(1, Math.floor(Wallet.get() * def.fraction));
   }
 
+  // betPerLine reste utilisé en interne pour le calcul des gains par ligne
+  // (table des paiements), mais la mise totale (celle réellement débitée)
+  // est désormais directement la valeur du jeton sélectionné.
   function refreshBetPerLine() {
-    betPerLine = chipAmount(CHIP_DEFS[selectedChipIndex]);
+    betPerLine = chipAmount(CHIP_DEFS[selectedChipIndex]) / LINES_COUNT;
   }
 
-  // Les jetons "fraction" affichent leur montant réel (par ligne) en
+  function getTotalBet() {
+    return chipAmount(CHIP_DEFS[selectedChipIndex]);
+  }
+
+  // Les jetons "fraction" affichent leur montant réel (mise totale) en
   // tooltip ; on la rafraîchit à chaque changement de solde.
   function refreshFractionChipTooltips() {
     document.querySelectorAll('.cd-bet-mult-btn[data-chip-index]').forEach((btn) => {
       const def = CHIP_DEFS[Number(btn.dataset.chipIndex)];
       if (def && def.type === 'fraction') {
-        btn.dataset.tooltip = `Mise : ${fmt(chipAmount(def))} 🪙 / ligne`;
+        btn.dataset.tooltip = `Mise totale : ${fmt(chipAmount(def))} 🪙`;
       }
     });
   }
@@ -148,7 +156,7 @@ const Columbus = (() => {
 
   function buildPaytableHTML(mult) {
     return `
-      <p class="cd-paytable-sub">Gains pour la mise actuelle : <strong>${fmt(mult)} 🪙</strong> / ligne</p>
+      <p class="cd-paytable-sub">Gains pour la mise actuelle (${fmt(getTotalBet())} 🪙 au total, 10 lignes fixes)</p>
       <div class="cd-paytable-grid">
         ${paytableTile(['QUEEN'], 'Reine Isabelle', mult)}
         ${paytableTile(['WILD'], 'Christophe Colomb (Wild)', mult)}
@@ -199,16 +207,16 @@ const Columbus = (() => {
 
         <div class="cd-controls-bar">
           <div class="cd-control">
-            <span class="cd-control-label">Mise / ligne</span>
+            <span class="cd-control-label">Mise</span>
             <div class="cd-bet-multipliers" id="cd-bet-multipliers">
               ${CHIP_DEFS.map((def, i) => {
                 const active = i === selectedChipIndex ? ' active' : '';
-                const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise : ${fmt(chipAmount(def))} 🪙 / ligne"` : '';
+                const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise totale : ${fmt(chipAmount(def))} 🪙"` : '';
                 return `<button type="button" class="cd-bet-mult-btn${active}" data-chip-index="${i}"${tooltip}>${def.label}</button>`;
               }).join('')}
             </div>
           </div>
-          <div class="cd-total-bet">Mise totale : <span id="cd-total-bet">${LINES_COUNT * betPerLine}</span> 🪙</div>
+          <div class="cd-total-bet">Mise totale : <span id="cd-total-bet">${getTotalBet()}</span> 🪙</div>
           <button type="button" class="btn-action cd-paytable-btn" id="cd-paytable-btn">Paytable</button>
           <button type="button" class="btn-action cd-spin-btn" id="cd-spin-btn">LANCER</button>
         </div>
@@ -259,6 +267,14 @@ const Columbus = (() => {
     container.querySelector('#cd-gamble-face').addEventListener('click', () => gambleChoice('face'));
     container.querySelector('#cd-gamble-cashout').addEventListener('click', cashOutGamble);
     Wallet.onChange(() => {
+      // On ne recalcule la mise "fraction" (1/4, 1/2, ALL) que lorsque le
+      // joueur peut à nouveau modifier ses contrôles, c'est-à-dire une fois
+      // le tour totalement résolu (gains recrédités compris). Sinon, le
+      // débit de la mise elle-même déclenchait ce onChange en pleine
+      // résolution et recalculait la mise sur un solde déjà amputé de la
+      // mise en cours (pas encore des gains) -> effondrement en cascade
+      // (1/4 du solde, puis 1/4 de ce qu'il en reste, etc.).
+      if (!canEditControls()) return;
       refreshBetPerLine();
       updateTotalBetDisplay();
       refreshFractionChipTooltips();
@@ -296,7 +312,7 @@ const Columbus = (() => {
 
   function updateTotalBetDisplay() {
     const el = document.getElementById('cd-total-bet');
-    if (el) el.textContent = fmt(LINES_COUNT * betPerLine);
+    if (el) el.textContent = fmt(getTotalBet());
   }
 
   function toggleControls(enabled) {
@@ -399,18 +415,27 @@ const Columbus = (() => {
       hideGamblePanel();
     }
 
+    // On verrouille AVANT de débiter la mise : Wallet.subtract() déclenche
+    // Wallet.onChange en synchrone, qui ne doit surtout pas recalculer une
+    // mise "fraction" (1/4, 1/2, ALL) sur le solde tout juste amputé de la
+    // mise en cours (canEditControls() doit déjà renvoyer false ici).
+    spinning = true;
+
     if (inFreeSpins) {
-      if (freeSpinsRemaining <= 0) return;
+      if (freeSpinsRemaining <= 0) {
+        spinning = false;
+        return;
+      }
     } else {
-      const totalBet = LINES_COUNT * betPerLine;
+      const totalBet = getTotalBet();
       if (!Wallet.canAfford(totalBet)) {
         setMessage('Solde insuffisant pour cette mise.');
+        spinning = false;
         return;
       }
       Wallet.subtract(totalBet);
     }
 
-    spinning = true;
     toggleControls(false);
     clearWinHighlights();
     document.getElementById('cd-wins-list').innerHTML = '';
@@ -595,7 +620,7 @@ const Columbus = (() => {
       const symbols = pattern.map((row, reelIdx) => finalGrid[reelIdx][row]);
       const best = evaluateLine(symbols, scattersAreWild);
       if (best.payout > 0) {
-        const amount = best.payout * betPerLine;
+        const amount = Math.round(best.payout * betPerLine);
         wins.push({ lineIndex: i + 1, symbolId: best.symbolId, count: best.count, amount });
         totalWin += amount;
       }
@@ -655,6 +680,7 @@ const Columbus = (() => {
       spawnCoinBurst(60);
       setMessage('⛵⛵⛵ 3 Caravelles ! 10 Free Spins gagnés !');
     } else if (totalWin > 0) {
+      spawnCoinBurst(Math.min(70, 25 + wins.length * 10));
       setMessage(wins.length > 1 ? `Gagné sur ${wins.length} lignes !` : 'Ligne gagnante !');
     } else {
       setMessage('Aucun gain, retentez votre chance.');
@@ -672,6 +698,11 @@ const Columbus = (() => {
 
   function finishRound() {
     toggleControls(true);
+    // Le solde est désormais définitif pour ce tour (gains recrédités
+    // compris) : on peut recalculer en toute sécurité une mise "fraction".
+    refreshBetPerLine();
+    updateTotalBetDisplay();
+    refreshFractionChipTooltips();
   }
 
   function renderWinsList(wins, totalWin) {
