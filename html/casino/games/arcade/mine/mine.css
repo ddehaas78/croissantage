@@ -289,42 +289,68 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .mn-actions .btn-action {
   flex: 1 1 auto;
-  border-radius: 10px;
+  border-radius: 999px;
+  padding: 10px 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  transition: filter 0.12s ease, transform 0.12s ease;
 }
 
 .mn-start,
 .mn-cashout {
-  background: linear-gradient(160deg, var(--gold-bright), var(--gold));
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold) 70%, var(--gold-dim));
   color: #241a08;
-  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4);
 }
 
-.mn-random {
+.mn-start:hover:not(:disabled),
+.mn-cashout:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.mn-random,
+.mn-repeat {
   background: transparent;
   border: 1px solid var(--gold-dim);
   color: var(--cream-dim);
 }
 
-.mn-random:hover:not(:disabled) {
+.mn-random:hover:not(:disabled),
+.mn-repeat:hover:not(:disabled) {
   border-color: var(--gold-bright);
   color: var(--gold-bright);
+}
+
+.mn-actions button:disabled {
+  filter: grayscale(0.5) brightness(0.6);
+  cursor: not-allowed;
 }
 
 .mn-newgame {
   width: 100%;
-  border-radius: 10px;
-  background: transparent;
-  border: 1px solid var(--gold-dim);
-  color: var(--cream-dim);
+  border-radius: 999px;
+  padding: 10px 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold) 70%, var(--gold-dim));
+  color: #241a08;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4);
+  transition: filter 0.12s ease, transform 0.12s ease;
 }
 
 .mn-newgame:hover:not(:disabled) {
-  border-color: var(--gold-bright);
-  color: var(--gold-bright);
+  filter: brightness(1.08);
 }
 
 @media (max-width: 860px) {

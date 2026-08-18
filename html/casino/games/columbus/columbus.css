@@ -386,27 +386,38 @@
 .cd-bet-multipliers{
   display:flex;
   align-items:center;
-  gap:6px;
+  gap:8px;
 }
 .cd-bet-mult-btn{
-  min-width:38px;
-  padding:6px 8px;
-  border-radius:8px;
-  border:1px solid var(--gold-dim);
-  background: var(--panel-light);
-  color: var(--cream);
+  width:38px;
+  height:38px;
+  flex: 0 0 auto;
+  border-radius:50%;
+  position:relative;
+  background: repeating-conic-gradient(var(--cream) 0deg 22.5deg, transparent 22.5deg 45deg);
+  border: 2px solid var(--gold-dim);
+  color:#241a08;
   font-family: var(--font-display);
-  font-weight:700;
-  font-size:.72rem;
+  font-weight:800;
+  font-size:.62rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,.4);
+  transition: transform .12s ease, box-shadow .12s ease;
   cursor:pointer;
   line-height:1;
+  isolation:isolate;
 }
-.cd-bet-mult-btn:hover:not(:disabled){ border-color: var(--gold-bright); color: var(--gold-bright); }
-.cd-bet-mult-btn:disabled{ opacity:.4; cursor:not-allowed; }
+.cd-bet-mult-btn::after{
+  content:'';
+  position:absolute;
+  inset:4px;
+  border-radius:50%;
+  background: radial-gradient(circle at 35% 30%, var(--gold-bright), var(--gold) 55%, var(--gold-dim));
+  z-index:-1;
+}
+.cd-bet-mult-btn:hover:not(:disabled){ transform: translateY(-2px); }
+.cd-bet-mult-btn:disabled{ filter: grayscale(0.6) brightness(0.7); cursor:not-allowed; }
 .cd-bet-mult-btn.active{
-  background: linear-gradient(180deg, var(--gold-bright), var(--gold) 70%, var(--gold-dim));
-  color:#241a08;
-  border-color: var(--gold-bright);
+  box-shadow: inset 0 0 0 2px var(--cream), 0 4px 14px rgba(212,175,55,.6);
 }
 
 .cd-total-bet{
@@ -537,6 +548,7 @@
   .cd-cell-card{ font-size:1.1rem; }
   .cd-reel{ width:56px; height:180px; }
   .cd-controls-bar{ gap:10px; }
+  .cd-bet-mult-btn{ width:34px; height:34px; font-size:.56rem; }
   .cd-paytable-grid{ grid-template-columns: repeat(2, 1fr); }
   .cd-paytable-side{ max-width:100%; max-height:none; }
 }

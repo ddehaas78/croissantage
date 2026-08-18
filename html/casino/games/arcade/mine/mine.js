@@ -25,6 +25,7 @@ const Mines = (() => {
   ];
 
   let selectedChipIndex = 1; // '50' par défaut
+  let lastChipIndex = null; // dernier jeton utilisé, pour "Même mise"
   let minesCount = DEFAULT_MINES;
   let bet = 0;
   let playing = false;
@@ -133,6 +134,14 @@ const Mines = (() => {
     const btn = document.getElementById('mn-start-btn');
     if (!btn) return;
     btn.disabled = playing || betAmount() <= 0 || !Wallet.canAfford(betAmount());
+    updateRepeatButton();
+  }
+
+  function updateRepeatButton() {
+    const btn = document.getElementById('mn-repeat-btn');
+    if (!btn) return;
+    const amount = lastChipIndex === null ? 0 : chipAmount(CHIP_DEFS[lastChipIndex]);
+    btn.disabled = playing || lastChipIndex === null || amount <= 0 || !Wallet.canAfford(amount);
   }
 
   function updateCashoutButton() {
@@ -220,6 +229,7 @@ const Mines = (() => {
     }
     Wallet.subtract(amount);
 
+    lastChipIndex = selectedChipIndex;
     bet = amount;
     mineLocations = generateMines();
     revealed = [];
@@ -232,6 +242,12 @@ const Mines = (() => {
     updateCashoutButton();
     renderGrid();
     setMessage(`Mise en jeu : ${fmt(bet)} 🪙. Choisissez une case.`);
+  }
+
+  function repeatBet() {
+    if (playing || lastChipIndex === null) return;
+    selectChip(lastChipIndex);
+    startGame();
   }
 
   function handleTileClick(index) {
@@ -350,6 +366,7 @@ const Mines = (() => {
           </div>
 
           <div class="mn-actions" id="mn-bet-actions">
+            <button type="button" class="btn-action mn-repeat" id="mn-repeat-btn" disabled>Même mise</button>
             <button type="button" class="btn-action mn-start" id="mn-start-btn">DÉMARRER</button>
           </div>
 
@@ -381,6 +398,7 @@ const Mines = (() => {
     container.querySelector('#mn-mines-down').addEventListener('click', () => adjustMines(-1));
 
     container.querySelector('#mn-start-btn').addEventListener('click', startGame);
+    container.querySelector('#mn-repeat-btn').addEventListener('click', repeatBet);
     container.querySelector('#mn-random-btn').addEventListener('click', pickRandomTile);
     container.querySelector('#mn-cashout-btn').addEventListener('click', cashout);
     container.querySelector('#mn-newgame-btn').addEventListener('click', newGame);

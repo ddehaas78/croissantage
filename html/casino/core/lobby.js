@@ -21,20 +21,22 @@ const TILE = 64;
 /* Chaque maison a : une porte (walkable + effet), un toit (bloquant,
    décoratif) et des façades (bloquantes) de part et d'autre de la porte.
    `x`/`y` sont explicites pour toutes (colonne/ligne de départ, largeur 3).
-   La rangée du haut (y: 1) est celle des jeux "principaux", symétrique
-   autour de la colonne centrale (13) : 0<->3, 1<->2. C'est aussi ce `y: 1`
+   La rangée du haut (y: 3) est celle des jeux "principaux", symétrique
+   autour de la colonne centrale (13) : 0<->3, 1<->2. C'est aussi ce `y: 3`
    qui sert de repère plus bas pour tracer automatiquement l'allée
-   verticale + le raccord au boulevard de chaque maison de cette rangée. */
+   verticale + le raccord au boulevard de chaque maison de cette rangée.
+   NB : la rangée du haut est décalée de 1 ligne (TOP_MARGIN) par rapport
+   au mur extérieur du haut, pour laisser un écart de 1 case seulement. */
 const ALL_HOUSES = [
-  { key: "blackjack",       name: "Blackjack",          icon: "🃏", href: "./games/blackjack/blackjack.html", x: 4,  y: 1 },
-  { key: "roulette",        name: "Roulette",           icon: "🎡", href: "./games/roulette/roulette.html",   x: 9,  y: 1 },
-  { key: "poker",           name: "Poker",              icon: "♠️", href: "./games/poker/poker.html",         x: 15, y: 1 },
-  { key: "slots",           name: "Machines à sous",    icon: "🎰", href: "./games/columbus/columbus.html",   x: 20, y: 1 },
-  { key: "arcade",          name: "Arcade",              icon: "🕹️", href: "./games/arcade/arcade.html",       x: 2,  y: 6 },
-  { key: "future-right",    name: "Bientôt disponible", icon: "🔒", href: null, locked: true,                 x: 22, y: 6 },
-  { key: "baccara",         name: "Baccara",            icon: "🎴", href: "./games/baccara/baccara.html",     x: 7,  y: 8 },
-  { key: "bar",             name: "Bar",                icon: "🍸", href: "./games/bar/bar.html",             x: 12, y: 8 },
-  { key: "future-bottom-2", name: "Bientôt disponible", icon: "🔒", href: null, locked: true,                 x: 17, y: 8 },
+  { key: "blackjack",       name: "Blackjack",          icon: "🃏", href: "./games/blackjack/blackjack.html", x: 4,  y: 2 },
+  { key: "roulette",        name: "Roulette",           icon: "🎡", href: "./games/roulette/roulette.html",   x: 9,  y: 2 },
+  { key: "poker",           name: "Poker",              icon: "♠️", href: "./games/poker/poker.html",         x: 15, y: 2 },
+  { key: "slots",           name: "Machines à sous",    icon: "🎰", href: "./games/columbus/columbus.html",   x: 20, y: 2 },
+  { key: "arcade",          name: "Arcade",              icon: "🕹️", href: "./games/arcade/arcade.html",       x: 2,  y: 7 },
+  { key: "future-right",    name: "Bientôt disponible", icon: "🔒", href: null, locked: true,                 x: 22, y: 7 },
+  { key: "baccara",         name: "Baccara",            icon: "🎴", href: "./games/baccara/baccara.html",     x: 7,  y: 9 },
+  { key: "bar",             name: "Bar",                icon: "🍸", href: "./games/bar/bar.html",             x: 12, y: 9 },
+  { key: "future-bottom-2", name: "Bientôt disponible", icon: "🔒", href: null, locked: true,                 x: 17, y: 9 },
 ];
 ALL_HOUSES.forEach((h, i) => {
   h.doorCode = 10 + i;
@@ -91,7 +93,7 @@ function buildGrid(width, height) {
   return grid;
 }
 
-const WIDTH = 27, HEIGHT = 13;
+const WIDTH = 27, HEIGHT = 14;
 const colliders = buildGrid(WIDTH, HEIGHT);
 
 /* ---------- Construction des maisons (toutes en 3x2 : toit + façade/porte) ---------- */
@@ -127,30 +129,30 @@ ALL_HOUSES.forEach(h => {
 
 /* ---------- Allées en tapis rouge ---------- */
 const CARPET = 2;
-const doorXs = ALL_HOUSES.filter(h => h.y === 1).map(h => h.x + 1); // [5, 10, 16, 21]
+const doorXs = ALL_HOUSES.filter(h => h.y === 2).map(h => h.x + 1); // [5, 10, 16, 21]
 
 // une allée verticale sous chaque porte des jeux (jusqu'à la rangée du bas des maisons annexes)
 doorXs.forEach(dx => {
-  for (let y = 3; y <= 7; y++) colliders[y][dx] = CARPET;
+  for (let y = 4; y <= 8; y++) colliders[y][dx] = CARPET;
 });
 // un grand boulevard horizontal qui relie toutes les allées
-for (let x = 2; x <= 24; x++) colliders[5][x] = CARPET;
+for (let x = 2; x <= 24; x++) colliders[6][x] = CARPET;
 
 // prolongement des allées de Blackjack (5) et Machines à sous (21) jusqu'à la rangée
 // des maisons latérales, pour rejoindre future-left / future-right
-colliders[8][5] = CARPET;
-colliders[8][21] = CARPET;
-for (let x = 3; x <= 4; x++) colliders[8][x] = CARPET;   // vers future-left (porte en x=3)
-for (let x = 22; x <= 23; x++) colliders[8][x] = CARPET; // vers future-right (porte en x=23)
+colliders[9][5] = CARPET;
+colliders[9][21] = CARPET;
+for (let x = 3; x <= 4; x++) colliders[9][x] = CARPET;   // vers future-left (porte en x=3)
+for (let x = 22; x <= 23; x++) colliders[9][x] = CARPET; // vers future-right (porte en x=23)
 
 // prolongement des allées de Roulette (10) et Poker (16) jusqu'à la rangée du bas
-for (let y = 8; y <= 10; y++) { colliders[y][10] = CARPET; colliders[y][16] = CARPET; }
+for (let y = 9; y <= 11; y++) { colliders[y][10] = CARPET; colliders[y][16] = CARPET; }
 // petits raccords pour rejoindre les portes de future-bottom-1 (8) et future-bottom-2 (18)
-for (let x = 8; x <= 9; x++) colliders[10][x] = CARPET;   // vers future-bottom-1
-for (let x = 17; x <= 18; x++) colliders[10][x] = CARPET; // vers future-bottom-2
+for (let x = 8; x <= 9; x++) colliders[11][x] = CARPET;   // vers future-bottom-1
+for (let x = 17; x <= 18; x++) colliders[11][x] = CARPET; // vers future-bottom-2
 
 // Accès direct au Bar depuis le boulevard central (entrée par le dessus, comme avant)
-for (let y = 6; y <= 7; y++) colliders[y][13] = CARPET;
+for (let y = 7; y <= 8; y++) colliders[y][13] = CARPET;
 
 /* ---------- Décorations ---------- */
 const DECO = {
@@ -160,10 +162,10 @@ const DECO = {
   SLOT: 6,
 };
 const decoSpots = [
-  [2, 3, DECO.TREE], [7, 3, DECO.TREE], [19, 3, DECO.TREE], [24, 3, DECO.TREE],
+  [2, 4, DECO.TREE], [7, 4, DECO.TREE], [19, 4, DECO.TREE], [24, 4, DECO.TREE],
   [5, 11, DECO.TREE], [21, 11, DECO.TREE],
-  [12, 4, DECO.SLOT], [14, 4, DECO.SLOT],
-  [13, 4, DECO.FOUNTAIN],
+  [12, 5, DECO.SLOT], [14, 5, DECO.SLOT],
+  [13, 5, DECO.FOUNTAIN],
 ];
 decoSpots.forEach(([x, y, code]) => { colliders[y][x] = code; });
 
@@ -198,6 +200,22 @@ mapEl.style.width = `${WIDTH * TILE}px`;
 mapEl.style.height = `${HEIGHT * TILE}px`;
 tilesetEl.style.width = `${WIDTH * TILE}px`;
 tilesetEl.style.height = `${HEIGHT * TILE}px`;
+
+/* Dézoom automatique : la map (WIDTH*TILE x HEIGHT*TILE) est mise à l'échelle
+   pour tenir dans la fenêtre sans jamais scroller, quelle que soit la taille
+   d'écran. On ne zoome jamais au-delà de la taille réelle (scale max = 1). */
+const VIEWPORT_MARGIN = 16; // marge de sécurité en px, tout autour
+let lobbyScale = 1;
+function fitLobbyToViewport() {
+  const mapW = WIDTH * TILE;
+  const mapH = HEIGHT * TILE;
+  const availW = window.innerWidth - VIEWPORT_MARGIN * 2;
+  const availH = window.innerHeight - VIEWPORT_MARGIN * 2;
+  lobbyScale = Math.min(1, availW / mapW, availH / mapH);
+  tilesetEl.style.transform = `translateY(-50%) scale(${lobbyScale})`;
+}
+fitLobbyToViewport();
+window.addEventListener('resize', fitLobbyToViewport);
 
 const ALL_PLACES = ALL_HOUSES;
 
@@ -238,12 +256,15 @@ for (let y = 0; y < HEIGHT; y++) {
     } else if (type.kind === "deco") {
       if (type.image) {
         div.classList.add('has-image', 'deco-image');
-        div.style.backgroundImage = `url("${DECO_IMAGE_BASE}${type.image}")`;
-        div.style.backgroundSize = 'contain';
-        div.style.backgroundRepeat = 'no-repeat';
-        div.style.backgroundPosition = 'center bottom';
+        div.style.backgroundImage = `url("${DECO_IMAGE_BASE}${type.image}"), url("${CARPET_IMAGE}")`;
+        div.style.backgroundSize = `contain, ${TILE}px ${TILE}px`;
+        div.style.backgroundRepeat = 'no-repeat, no-repeat';
+        div.style.backgroundPosition = 'center bottom, top left';
         div.style.imageRendering = 'pixelated';
       } else {
+        div.classList.add('has-image');
+        div.style.backgroundImage = `url("${CARPET_IMAGE}")`;
+        div.style.backgroundSize = `${TILE}px ${TILE}px`;
         div.innerHTML = `<span class="icon">${type.icon}</span>`;
       }
     }
@@ -253,7 +274,7 @@ for (let y = 0; y < HEIGHT; y++) {
 
 
 /* ---------- État du joueur ---------- */
-const SPAWN_DEFAULT = { x: 13, y: 5 };
+const SPAWN_DEFAULT = { x: 13, y: 6 };
 const POS_KEY = 'croissantage_lobby_pos';
 
 function loadSavedPos() {

@@ -228,6 +228,50 @@ La roulette (`games/roulette/`) est l'exemple le plus complet à suivre.
 - Un bloc `@media (max-width: 860px)` puis `@media (max-width: 480px)` en fin de
   fichier pour le responsive (empilement vertical, tailles réduites).
 
+**Style du panneau de mise** : le panneau (`.fs-side-panel`, `.bc-side-panel`
+et équivalents) suit un fond dégradé sombre cohérent avec le thème casino —
+`linear-gradient(160deg, var(--panel-light), var(--panel))` — bordé d'un trait
+fin doré translucide (`border: 1px solid rgba(212, 175, 55, 0.25)`), coins
+arrondis `16px`, contenu centré en colonne (`flex-direction: column;
+align-items: center; gap: 14px`).
+
+- **Jetons (`.fs-chip`, `.bc-mult-btn`, `.bc-zone-chip`)** : toujours ronds
+  (`border-radius: 50%`), ~`42-44px`, avec un motif "camembert" en
+  conic-gradient crème/transparent pour simuler les rayures d'un jeton, une
+  bordure dorée sombre (`--gold-dim`), et un dégradé radial doré en
+  pseudo-élément `::after` pour l'effet de relief/lumière. C'est la forme de
+  référence pour **toute** sélection de montant de mise — jamais de bouton
+  rectangulaire pour représenter un jeton. Légère élévation au survol
+  (`translateY(-2px)`), désaturation + assombrissement (`filter: grayscale(0.6)
+  brightness(0.7)`) quand désactivé.
+  - Quand le jeton sert de **sélecteur stateful** (un seul montant actif à la
+    fois, ex. `.bc-mult-btn`), l'état sélectionné se signale par un anneau
+    lumineux crème en plus (`box-shadow: inset 0 0 0 2px var(--cream), ...`),
+    sans changer la forme ni le fond du jeton — le remplissage doré reste
+    identique entre état actif et inactif.
+- **Champ de cible (`.fs-target-*`)** : encart sombre translucide
+  (`rgba(0,0,0,0.35)`) bordé doré, texte crème centré, avec deux petits
+  boutons +/- empilés à droite séparés par une bordure dorée fine.
+- **Boutons d'action** (`.fs-actions .btn-action`, `.bc-deal-btn`,
+  `.bc-new-round-btn`...) : police d'affichage en gras avec tracking, coins
+  arrondis `10px`. Trois traitements distincts selon le rôle, appliqués
+  systématiquement quel que soit le jeu :
+  - *secondaires* (`.fs-clear`, `.fs-repeat`) : fond transparent, simple
+    contour doré atténué (`--gold-dim`), passant au doré vif au survol ;
+  - *action principale* (`.fs-launch`, `.bc-deal-btn`) : dégradé doré vertical
+    (`--gold-bright` → `--gold` → `--gold-dim`), texte brun foncé (`#241a08`),
+    ombre dorée diffuse, `filter: brightness(1.08)` au survol — jamais de
+    couleur générique (grise/olive) par défaut, le dégradé doit être défini
+    explicitement dans le CSS du jeu ;
+  - *encaissement* (`.fs-cashout`) : dégradé émeraude (`--emerald-bright` →
+    `--emerald`), texte crème, avec une pulsation lumineuse continue
+    (`fsPulse`) pour attirer l'œil pendant que le multiplicateur monte.
+- **Couleurs** : toujours puisées dans les variables globales du thème
+  (`--gold`, `--gold-bright`, `--gold-dim`, `--cream`, `--cream-dim`,
+  `--emerald`, `--emerald-bright`, `--panel`, `--panel-light`) — jamais de
+  couleur codée en dur, sauf pour les teintes d'état ponctuelles (rouge perte
+  `#e0685f`, brun texte sur fond doré `#241a08`).
+
 ### 4.3 `games/roulette/roulette.js` — le pattern de module
 
 Chaque jeu est un **IIFE nommé** exposant une petite API publique, construit
