@@ -7,7 +7,17 @@
 const BlackJack = (() => {
   const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
   const SUITS = ['♠', '♥', '♦', '♣'];
-  const CHIP_VALUES = [5, 10, 25, 50, 100];
+  // Jetons : valeurs fixes + jetons "fraction du solde restant" (1/4, 1/2, ALL),
+  // recalculés en live à chaque clic puisque la mise s'accumule localement
+  // avant d'être débitée du Wallet (contrairement à la roulette).
+  const CHIP_DEFS = [
+    { type: 'fixed', value: 25, label: '25' },
+    { type: 'fixed', value: 50, label: '50' },
+    { type: 'fixed', value: 100, label: '100' },
+    { type: 'fraction', fraction: 0.25, label: '1/4' },
+    { type: 'fraction', fraction: 0.5, label: '1/2' },
+    { type: 'fraction', fraction: 1, label: 'ALL' },
+  ];
 
   let shoe = [];
   let dealerHand = [];
@@ -141,6 +151,7 @@ const BlackJack = (() => {
   function updateBetDisplay() {
     const el = document.getElementById('bj-bet-amount');
     if (el) el.textContent = fmt(bet);
+    refreshFractionChipTooltips();
   }
 
   function renderHistory() {
@@ -157,17 +168,45 @@ const BlackJack = (() => {
   }
 
   /* ---------------- Mise ---------------- */
-  function buildChipsHTML() {
-    return CHIP_VALUES.map((v) => `<button type="button" class="bj-chip" data-chip="${v}">${v}</button>`).join('');
+  // Montant restant réellement disponible pour miser (solde Wallet moins ce
+  // qui est déjà accumulé dans `bet`, puisque le Wallet n'est débité qu'au
+  // moment de DISTRIBUER).
+  function availableBalance() {
+    return Math.max(0, Wallet.get() - bet);
   }
 
-  function addChip(value) {
+  function chipAmount(def) {
+    if (def.type === 'fixed') return def.value;
+    return Math.floor(availableBalance() * def.fraction);
+  }
+
+  function buildChipsHTML() {
+    return CHIP_DEFS.map((def, i) => {
+      const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise : ${fmt(chipAmount(def))} 🪙"` : '';
+      return `<button type="button" class="bj-chip" data-chip-index="${i}"${tooltip}>${def.label}</button>`;
+    }).join('');
+  }
+
+  // Les jetons "fraction" affichent leur montant réel en tooltip ; on la
+  // rafraîchit à chaque changement de mise ou de solde.
+  function refreshFractionChipTooltips() {
+    document.querySelectorAll('.bj-chip[data-chip-index]').forEach((btn) => {
+      const def = CHIP_DEFS[Number(btn.dataset.chipIndex)];
+      if (def && def.type === 'fraction') {
+        btn.dataset.tooltip = `Mise : ${fmt(chipAmount(def))} 🪙`;
+      }
+    });
+  }
+
+  function addChip(index) {
     if (inRound) return;
-    if (!Wallet.canAfford(bet + value)) {
+    const def = CHIP_DEFS[index];
+    const amount = chipAmount(def);
+    if (amount <= 0 || !Wallet.canAfford(bet + amount)) {
       setMessage('Solde insuffisant pour ce jeton.', 'bj-msg-warn');
       return;
     }
-    bet += value;
+    bet += amount;
     updateBetDisplay();
     setMessage(`Mise : ${fmt(bet)} 🪙. Cliquez sur DISTRIBUER quand vous êtes prêt.`);
   }
@@ -456,8 +495,9 @@ const BlackJack = (() => {
 
   function bindEvents(container) {
     container.querySelectorAll('.bj-chip').forEach((btn) => {
-      btn.addEventListener('click', () => addChip(Number(btn.dataset.chip)));
+      btn.addEventListener('click', () => addChip(Number(btn.dataset.chipIndex)));
     });
+    Wallet.onChange(() => refreshFractionChipTooltips());
     container.querySelector('#bj-clear-bet').addEventListener('click', clearBet);
     container.querySelector('#bj-repeat-bet').addEventListener('click', repeatBet);
     container.querySelector('#bj-deal-btn').addEventListener('click', deal);

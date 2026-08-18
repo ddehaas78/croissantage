@@ -17,38 +17,30 @@ const tilesetEl = document.getElementById('tileset');
 
 const TILE = 64;
 
-/* ---------- Définition des jeux / maisons ---------- */
-/* Chaque jeu a : une porte (walkable + effet), un toit (bloquant, décoratif)
-   et des façades (bloquantes) de part et d'autre de la porte. */
-const GAMES = [
-  { key: "blackjack", name: "Blackjack",        icon: "🃏", href: "./games/blackjack/blackjack.html" },
-  { key: "roulette",  name: "Roulette",         icon: "🎡", href: "./games/roulette/roulette.html" },
-  { key: "poker",     name: "Poker",            icon: "♠️", href: "./games/poker/poker.html" },
-  { key: "slots",     name: "Machines à sous",  icon: "🎰", href: "./games/columbus/columbus.html" },
+/* ---------- Définition de toutes les maisons du village ---------- */
+/* Chaque maison a : une porte (walkable + effet), un toit (bloquant,
+   décoratif) et des façades (bloquantes) de part et d'autre de la porte.
+   `x`/`y` sont explicites pour toutes (colonne/ligne de départ, largeur 3).
+   La rangée du haut (y: 1) est celle des jeux "principaux", symétrique
+   autour de la colonne centrale (13) : 0<->3, 1<->2. C'est aussi ce `y: 1`
+   qui sert de repère plus bas pour tracer automatiquement l'allée
+   verticale + le raccord au boulevard de chaque maison de cette rangée. */
+const ALL_HOUSES = [
+  { key: "blackjack",       name: "Blackjack",          icon: "🃏", href: "./games/blackjack/blackjack.html", x: 4,  y: 1 },
+  { key: "roulette",        name: "Roulette",           icon: "🎡", href: "./games/roulette/roulette.html",   x: 9,  y: 1 },
+  { key: "poker",           name: "Poker",              icon: "♠️", href: "./games/poker/poker.html",         x: 15, y: 1 },
+  { key: "slots",           name: "Machines à sous",    icon: "🎰", href: "./games/columbus/columbus.html",   x: 20, y: 1 },
+  { key: "arcade",          name: "Arcade",              icon: "🕹️", href: "./games/arcade/arcade.html",       x: 2,  y: 6 },
+  { key: "future-right",    name: "Bientôt disponible", icon: "🔒", href: null, locked: true,                 x: 22, y: 6 },
+  { key: "baccara",         name: "Baccara",            icon: "🎴", href: "./games/baccara/baccara.html",     x: 7,  y: 8 },
+  { key: "bar",             name: "Bar",                icon: "🍸", href: "./games/bar/bar.html",             x: 12, y: 8 },
+  { key: "future-bottom-2", name: "Bientôt disponible", icon: "🔒", href: null, locked: true,                 x: 17, y: 8 },
 ];
-GAMES.forEach((g, i) => {
-  g.doorCode = 10 + i;   // 10-13
-  g.roofCode = 20 + i;   // 20-23
-  g.facadeCode = 30 + i; // 30-33
+ALL_HOUSES.forEach((h, i) => {
+  h.doorCode = 10 + i;
+  h.roofCode = 20 + i;
+  h.facadeCode = 30 + i;
 });
-
-/* ---------- Bâtiments annexes (même gabarit "maison" 3x2 que les jeux) ---------- */
-/* future-left / future-right : rangée à part, plus proches du centre que les jeux.
-   future-bottom-1 / bar / future-bottom-2 : rangée du bas, bar centré. */
-const EXTRA_HOUSES = [
-  { key: "future-left",     name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 2,  y: 6 },
-  { key: "future-right",    name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 22, y: 6 },
-  { key: "baccara",         name: "Baccara",            icon: "🎴", href: "./games/baccara/baccara.html", x: 7,  y: 8 },
-  { key: "bar",             name: "Bar",                icon: "🍸", href: "./games/bar/bar.html",  x: 12, y: 8 },
-  { key: "future-bottom-2", name: "Bientôt disponible", icon: "🔒", href: null, locked: true, x: 17, y: 8 },
-];
-EXTRA_HOUSES.forEach((e, i) => {
-  e.doorCode = 40 + i;   // 40-44
-  e.roofCode = 50 + i;   // 50-54
-  e.facadeCode = 60 + i; // 60-64
-});
-
-const ALL_HOUSES = [...GAMES, ...EXTRA_HOUSES];
 
 /* ---------- Images des bâtiments (toit + façade en un seul visuel) ---------- */
 /* Chaque image doit faire (largeur_maison * TILE) x (2 * TILE) px, soit
@@ -68,7 +60,7 @@ const HOUSE_IMAGES = {
   slots:             "slots.png",
   baccara:           "baccara.png",
   bar:               "bar.png",
-  "future-left":     "future-left.png",
+  arcade:            "arcade.png",
   "future-right":    "future-right.png",
   "future-bottom-2": "future-bottom-2.png",
 };
@@ -85,10 +77,6 @@ const DECO_IMAGES = {
   slot: "slot-deco.png",
   plant: "plant-deco.png",
 };
-
-/* Position (colonne de départ, largeur 3) de chaque maison de jeu sur la grille.
-   Symétrique autour de la colonne centrale (13) : 0<->3, 1<->2 */
-const HOUSE_X = [4, 9, 15, 20];
 
 function buildGrid(width, height) {
   const grid = [];
@@ -118,17 +106,16 @@ function buildHouse(house, xs, y) {
   colliders[y + 1][xs + 1] = house.doorCode;
   colliders[y + 1][xs + 2] = house.facadeCode;
 }
-GAMES.forEach((g, i) => buildHouse(g, HOUSE_X[i], 1));
-EXTRA_HOUSES.forEach(e => {
-  if (e.key === "bar") return; // le bar a une disposition inversée, gérée à part ci-dessous
-  buildHouse(e, e.x, e.y);
+ALL_HOUSES.forEach(h => {
+  if (h.key === "bar") return; // le bar a une disposition inversée, gérée à part ci-dessous
+  buildHouse(h, h.x, h.y);
 });
 
 /* Bar : entrée sur la rangée du HAUT (accès direct depuis le boulevard, par un
    chemin qui descend d'en haut), avec une rangée de façades pleine en dessous
    pour former un vrai bâtiment 3x2. */
 {
-  const bar = EXTRA_HOUSES.find(e => e.key === "bar");
+  const bar = ALL_HOUSES.find(h => h.key === "bar");
   bar.width = 3;
   colliders[bar.y][bar.x]     = bar.facadeCode;
   colliders[bar.y][bar.x + 1] = bar.doorCode;
@@ -140,7 +127,7 @@ EXTRA_HOUSES.forEach(e => {
 
 /* ---------- Allées en tapis rouge ---------- */
 const CARPET = 2;
-const doorXs = GAMES.map((g, i) => HOUSE_X[i] + 1); // [5, 10, 16, 21]
+const doorXs = ALL_HOUSES.filter(h => h.y === 1).map(h => h.x + 1); // [5, 10, 16, 21]
 
 // une allée verticale sous chaque porte des jeux (jusqu'à la rangée du bas des maisons annexes)
 doorXs.forEach(dx => {
@@ -627,4 +614,10 @@ document.getElementById('tileset').addEventListener('click', (e) => {
   const path = pathFind.getPath(currPos, { x, y });
   pathFind.drawPath(path);
   followPath(path);
+});
+
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) {
+    location.reload();
+  }
 });

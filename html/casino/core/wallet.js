@@ -155,6 +155,20 @@ const Wallet = (() => {
 
   document.addEventListener('DOMContentLoaded', initTooltips);
 
+  // Quand la page revient du bfcache (bouton retour arrière du navigateur),
+  // le script n'est PAS rejoué : `balance` reste figé sur la valeur qu'il
+  // avait au moment où on a quitté la page, même si localStorage a été mis
+  // à jour entre-temps par une autre page (ex. le bar). On resynchronise
+  // donc explicitement depuis localStorage et on rafraîchit l'affichage.
+  window.addEventListener('pageshow', (event) => {
+    if (!event.persisted) return;
+    const stored = Number(localStorage.getItem(STORAGE_KEY));
+    if (Number.isFinite(stored) && stored >= 0) {
+      balance = stored;
+    }
+    notify();
+  });
+
   return {
     get() {
       return balance;

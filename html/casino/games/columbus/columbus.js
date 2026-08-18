@@ -41,11 +41,19 @@ const Columbus = (() => {
   ];
 
   const LINES_COUNT = 10; // Toutes les lignes sont désormais actives en permanence
-  const BASE_BET = 10;
-  const BET_MULTIPLIERS = [1, 2, 4, 5, 10]; // x1 = 10 lignes x 10 crédits = 100 crédits minimum
+  // Jetons : valeurs fixes (mise/ligne) + jetons "fraction du solde total"
+  // (1/4, 1/2, ALL), répartis sur les 10 lignes actives.
+  const CHIP_DEFS = [
+    { type: 'fixed', value: 25, label: '25' },
+    { type: 'fixed', value: 50, label: '50' },
+    { type: 'fixed', value: 100, label: '100' },
+    { type: 'fraction', fraction: 0.25, label: '1/4' },
+    { type: 'fraction', fraction: 0.5, label: '1/2' },
+    { type: 'fraction', fraction: 1, label: 'ALL' },
+  ];
 
-  let betMultiplier = BET_MULTIPLIERS[0];
-  let betPerLine = BASE_BET * betMultiplier;
+  let selectedChipIndex = 0; // '25' par défaut
+  let betPerLine = 25; // recalculé via refreshBetPerLine() dès que le Wallet est prêt
   let spinning = false;
   let inFreeSpins = false;
   let freeSpinsRemaining = 0;
@@ -59,6 +67,29 @@ const Columbus = (() => {
 
   function fmt(n) {
     return n.toLocaleString('fr-FR');
+  }
+
+  // Montant d'un jeton pour une mise "par ligne" : pour un jeton fixe c'est
+  // sa valeur telle quelle ; pour un jeton fraction, on prend cette fraction
+  // du solde total puis on la répartit sur les 10 lignes actives.
+  function chipAmount(def) {
+    if (def.type === 'fixed') return def.value;
+    return Math.max(1, Math.floor((Wallet.get() * def.fraction) / LINES_COUNT));
+  }
+
+  function refreshBetPerLine() {
+    betPerLine = chipAmount(CHIP_DEFS[selectedChipIndex]);
+  }
+
+  // Les jetons "fraction" affichent leur montant réel (par ligne) en
+  // tooltip ; on la rafraîchit à chaque changement de solde.
+  function refreshFractionChipTooltips() {
+    document.querySelectorAll('.cd-bet-mult-btn[data-chip-index]').forEach((btn) => {
+      const def = CHIP_DEFS[Number(btn.dataset.chipIndex)];
+      if (def && def.type === 'fraction') {
+        btn.dataset.tooltip = `Mise : ${fmt(chipAmount(def))} 🪙 / ligne`;
+      }
+    });
   }
 
   function buildStrip() {
@@ -141,6 +172,7 @@ const Columbus = (() => {
     if (!container || built) return;
     built = true;
     buildReels();
+    refreshBetPerLine();
 
     container.innerHTML = `
       <div class="cd-wrap">
@@ -169,7 +201,11 @@ const Columbus = (() => {
           <div class="cd-control">
             <span class="cd-control-label">Mise / ligne</span>
             <div class="cd-bet-multipliers" id="cd-bet-multipliers">
-              ${BET_MULTIPLIERS.map((m) => `<button type="button" class="cd-bet-mult-btn${m === betMultiplier ? ' active' : ''}" data-mult="${m}">x${m}</button>`).join('')}
+              ${CHIP_DEFS.map((def, i) => {
+                const active = i === selectedChipIndex ? ' active' : '';
+                const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise : ${fmt(chipAmount(def))} 🪙 / ligne"` : '';
+                return `<button type="button" class="cd-bet-mult-btn${active}" data-chip-index="${i}"${tooltip}>${def.label}</button>`;
+              }).join('')}
             </div>
           </div>
           <div class="cd-total-bet">Mise totale : <span id="cd-total-bet">${LINES_COUNT * betPerLine}</span> 🪙</div>
@@ -214,7 +250,7 @@ const Columbus = (() => {
 
   function bindEvents(container) {
     container.querySelectorAll('.cd-bet-mult-btn').forEach((btn) => {
-      btn.addEventListener('click', () => selectBetMultiplier(Number(btn.dataset.mult)));
+      btn.addEventListener('click', () => selectChip(Number(btn.dataset.chipIndex)));
     });
     container.querySelector('#cd-spin-btn').addEventListener('click', spin);
     container.querySelector('#cd-paytable-btn').addEventListener('click', () => togglePaytable());
@@ -222,6 +258,11 @@ const Columbus = (() => {
     container.querySelector('#cd-gamble-pile').addEventListener('click', () => gambleChoice('pile'));
     container.querySelector('#cd-gamble-face').addEventListener('click', () => gambleChoice('face'));
     container.querySelector('#cd-gamble-cashout').addEventListener('click', cashOutGamble);
+    Wallet.onChange(() => {
+      refreshBetPerLine();
+      updateTotalBetDisplay();
+      refreshFractionChipTooltips();
+    });
   }
 
   function setMessage(msg) {
@@ -241,13 +282,13 @@ const Columbus = (() => {
     return !spinning && !inFreeSpins && pendingWin === 0;
   }
 
-  function selectBetMultiplier(mult) {
+  function selectChip(index) {
     if (!canEditControls()) return;
-    if (!BET_MULTIPLIERS.includes(mult)) return;
-    betMultiplier = mult;
-    betPerLine = BASE_BET * betMultiplier;
+    if (!CHIP_DEFS[index]) return;
+    selectedChipIndex = index;
+    refreshBetPerLine();
     document.querySelectorAll('.cd-bet-mult-btn').forEach((btn) => {
-      btn.classList.toggle('active', Number(btn.dataset.mult) === betMultiplier);
+      btn.classList.toggle('active', Number(btn.dataset.chipIndex) === selectedChipIndex);
     });
     updateTotalBetDisplay();
     refreshPaytableValues();

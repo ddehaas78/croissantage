@@ -96,5 +96,21 @@ const Drunk = (() => {
 
   document.addEventListener('DOMContentLoaded', applyEffects);
 
+  // Même souci que pour Wallet : au retour depuis le bfcache, `level` est
+  // figé sur sa valeur d'avant le départ vers une autre page. On relit
+  // localStorage, on rattrape la décroissance qui aurait dû s'appliquer
+  // pendant l'absence, puis on réapplique les effets visuels.
+  window.addEventListener('pageshow', (event) => {
+    if (!event.persisted) return;
+    const stored = Number(localStorage.getItem(STORAGE_KEY));
+    if (Number.isFinite(stored)) level = clamp(stored);
+
+    const lastTickStored = Number(localStorage.getItem(LAST_TICK_KEY)) || Date.now();
+    const missed = Math.floor((Date.now() - lastTickStored) / TICK_MS);
+    if (missed > 0) level = clamp(level - missed * DECAY_PER_TICK);
+
+    notify();
+  });
+
   return { addDose, getLevel, stateLabel, onChange, MAX };
 })();

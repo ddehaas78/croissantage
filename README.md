@@ -13,8 +13,8 @@ structure de fichiers, conventions de code) sans avoir à redécouvrir l'archite
 
 Le joueur arrive sur `hihihi.html` (écran d'entrée), clique sur "Entrer au Casino",
 et atterrit sur `lobby.html` : un petit village vu de dessus façon vieux Pokémon
-(GBA/DS), où chaque jeu est une maison. Le joueur se déplace (clavier ZQSD/flèches
-ou clic pathfinding) et entre dans une maison pour lancer le jeu correspondant,
+(GBA/DS), où chaque jeu est une maison. Le joueur se déplace (clavier ZQSD/flèches)
+et entre dans une maison pour lancer le jeu correspondant,
 qui s'ouvre sur sa propre page HTML.
 
 Deux ambiances visuelles cohabitent volontairement :
@@ -48,6 +48,16 @@ Deux ambiances visuelles cohabitent volontairement :
 │   ├── topbar.js            → génère le bandeau du haut sur les pages de jeu (transverse)
 │   └── wallet.js            → solde de jetons (transverse)
 └── games/
+    ├── arcade/                → maison-menu regroupant des mini-jeux solo
+    │   ├── arcade.html           → hub avec le carrousel de sélection
+    │   ├── arcade.css
+    │   ├── arcade.js
+    │   ├── fusee/                → un sous-dossier par mini-jeu, trois niveaux sous la racine
+    │   │   fusee.html
+    │   │   fusee.css
+    │   │   fusee.js
+    │   ├── mines/
+    │   └── craps/
     └── <jeu>/                → un dossier par jeu (baccara, bar, blackjack, columbus, poker, roulette, ...)
             <jeu>.html
             <jeu>.css
@@ -69,13 +79,23 @@ commencent donc désormais par `../../` (et non plus `../`). Le lobby et
 ⚠️ Piège classique en migrant/créant un jeu : ne pas oublier de passer les chemins
 de `../css/...`, `../js/...` à `../../core/...`, et `../assets/...` à `../../assets/...`.
 
+**Cas particulier : maison-menu avec sous-jeux (ex. `games/arcade/`)** — le hub
+lui-même (`arcade.html`) est à la même profondeur qu'un jeu classique (deux
+niveaux, `../../core/...`), mais ses sous-jeux vivent **un niveau plus bas**,
+dans `games/arcade/<jeu>/` (trois niveaux sous la racine). Depuis ces
+sous-jeux, tous les chemins vers `core/`, `assets/`, `boisson/` commencent
+donc par `../../../` (et non `../../`). Le hub, lui, n'a besoin de connaître
+que le chemin relatif vers chaque sous-jeu (`./<jeu>/<jeu>.html`), pas leur
+profondeur absolue.
+
 Ce piège ne concerne pas que le HTML (`<link>`/`<script>`) : certains jeux
 définissent aussi des **constantes de préfixe de chemin en JS** pour construire
 des URLs dynamiquement vers `assets/`, `boisson/`, etc. (ex. `SKIN_ROOT_PREFIX`
 dans `bar.js`, utilisée avec `Skins.urlFor()` — voir section 3). Ces constantes
-suivent la même règle de profondeur (`../../` depuis `games/<jeu>/`), mais elles
-ne sont pas centralisées : chaque jeu les définit lui-même, donc il faut penser à
-les vérifier dans le JS de chaque jeu, pas seulement dans son HTML.
+suivent la même règle de profondeur (`../../` depuis `games/<jeu>/`, `../../../`
+depuis `games/arcade/<jeu>/`), mais elles ne sont pas centralisées : chaque jeu
+les définit lui-même, donc il faut penser à les vérifier dans le JS de chaque
+jeu, pas seulement dans son HTML.
 
 ---
 
@@ -269,22 +289,38 @@ lien mort ou une page cassée, ou utiliser `game-stub.css` pour afficher un écr
 ## 5. Ajouter un jeu à la carte du lobby (`core/lobby.js`)
 
 Le lobby gère une grille de collisions (`colliders`) où chaque case a un code.
-Pour ajouter une nouvelle maison de jeu :
+Toutes les maisons (jeux principaux, bar, baccara, emplacements "Bientôt
+disponible"...) vivent dans **un seul tableau `ALL_HOUSES`**, avec `x`/`y`
+explicites pour chacune — il n'y a plus de séparation entre "jeux" et
+"bâtiments annexes", ni de tableau `HOUSE_X` séparé à maintenir en synchro.
 
-1. **Jeu principal** (façade du haut, avec porte) → ajouter une entrée dans le
-   tableau `GAMES` :
+Pour ajouter une nouvelle maison :
+
+1. Ajouter une entrée dans `ALL_HOUSES` :
    ```js
-   { key: "monjeu", name: "Mon Jeu", icon: "🎲", href: "./games/monjeu/monjeu.html" }
+   { key: "monjeu", name: "Mon Jeu", icon: "🎲", href: "./games/monjeu/monjeu.html", x: 6, y: 1 }
    ```
-   Les codes `doorCode`/`roofCode`/`facadeCode` sont attribués automatiquement.
-   Il faut aussi une position en `x` dans `HOUSE_X` (largeur de maison = 3 cases).
+   `x` = colonne de départ (largeur de maison = 3 cases), `y` = ligne de départ.
+   Les codes `doorCode`/`roofCode`/`facadeCode` sont attribués automatiquement
+   à partir de la position de l'entrée dans le tableau — pas besoin d'y toucher.
 
-2. **Bâtiment annexe** (bar, baccara, ou futur emplacement type "Bientôt
-   disponible" — voir les visuels `future-bottom-2.png` / `future-left.png` /
-   `future-right.png` dans `assets/misc/batiment/`) → ajouter une entrée dans
-   `EXTRA_HOUSES` avec `x`/`y` explicites.
+2. **`y: 1` a un sens particulier** : c'est la rangée du haut, réservée aux
+   jeux "principaux", symétrique autour de la colonne centrale (13). Toute
+   maison placée à `y: 1` reçoit automatiquement son allée verticale en tapis
+   rouge et son raccord au grand boulevard (voir la section "Allées en tapis
+   rouge" du fichier, basée sur `ALL_HOUSES.filter(h => h.y === 1)`) — rien à
+   faire de plus. Pour une maison ailleurs (`y` différent, comme le bar ou
+   Arcade), il faut en revanche vérifier/ajouter le raccord de tapis à la main
+   si l'emplacement n'est pas déjà relié au boulevard.
 
-3. **Image du bâtiment** (optionnelle mais recommandée) : déposer un visuel
+3. **Cas particulier du bar** : sa porte est sur la rangée du HAUT de son
+   bâtiment (accès direct depuis au-dessus) au lieu du bas comme les autres
+   maisons. Ce n'est pas géré par `buildHouse()` mais par un bloc de code à
+   part juste après (repéré via `ALL_HOUSES.find(h => h.key === "bar")`). Si
+   un nouveau jeu a besoin d'une disposition de porte non standard, suivre ce
+   modèle plutôt que de complexifier `buildHouse()`.
+
+4. **Image du bâtiment** (optionnelle mais recommandée) : déposer un visuel
    `192x128px` (largeur_maison × TILE=64, hauteur 2×TILE) dans
    `assets/misc/batiment/` et l'enregistrer dans `HOUSE_IMAGES` :
    ```js
@@ -295,16 +331,59 @@ Pour ajouter une nouvelle maison de jeu :
    `games/slots/` correspondant pour l'instant — probablement un jeu prévu mais
    pas encore implémenté.)
 
-4. **Verrouillage temporaire** : ajouter `locked: true` à l'entrée — la maison
+5. **Verrouillage temporaire** : ajouter `locked: true` à l'entrée — la maison
    s'affiche en niveaux de gris, la porte ne redirige pas, et le texte affiché
    devient `"<name>..."` au lieu de `"Entrée : <name>"`.
 
-5. Le pathfinding (Dijkstra) et les collisions se recalculent automatiquement à
+6. Le pathfinding (Dijkstra) et les collisions se recalculent automatiquement à
    partir de `colliders` : pas besoin de toucher à `PathFind`.
 
 ---
 
-## 6. Charte graphique (`core/main.css`)
+## 6. Maison-menu avec sous-jeux — exemple de référence : Arcade
+
+Certaines maisons ne mènent pas directement à un jeu, mais à un **hub**
+proposant plusieurs mini-jeux au sein d'une même thématique. `games/arcade/`
+en est le premier exemple : sa porte dans le lobby (`href:
+"./games/arcade/arcade.html"`) ouvre un menu carrousel plutôt qu'un jeu.
+
+### 6.1 Le hub (`arcade.html` + `arcade.css` + `arcade.js`)
+
+Suit exactement le même squelette qu'un jeu classique (section 4.1) — topbar
++ `#arcade .game-body` vide, IIFE `Arcade` avec `init()`/`built` — à la
+différence près que son contenu injecté est un **carrousel de sélection**
+plutôt qu'un plateau de jeu :
+
+- Chaque mini-jeu est décrit par un objet `{ id, name, icon, tagline, href,
+  ready }` dans un tableau interne à `arcade.js`.
+- `ready: false` tant que le mini-jeu n'a pas de dossier fonctionnel : cliquer
+  dessus affiche un message "bientôt disponible" au lieu de naviguer vers un
+  lien mort (même logique que `locked: true` au niveau du lobby, mais gérée
+  ici en interne au hub plutôt que dans `core/lobby.js`).
+- Le carrousel utilise une **position virtuelle non bornée** (`center`, un
+  entier qui peut dépasser 0..N-1) plutôt qu'un simple index modulo : les
+  vignettes DOM gardent leur identité tant qu'elles restent dans la fenêtre
+  visible (on ne les recrée jamais), ce qui permet à la transition CSS sur
+  `transform` de les faire glisser d'une position à l'autre au lieu de sauter
+  instantanément. Seules les vignettes qui entrent/sortent de la fenêtre
+  visible sont créées/retirées, avec un glissement depuis/vers le bord.
+- Navigation : flèches `.ac-nav-prev/next`, clic sur une vignette latérale,
+  flèches du clavier, ou glisser (swipe) à la souris/au doigt — tout passe par
+  la même fonction `go(delta)`.
+
+### 6.2 Les sous-jeux (`games/arcade/<jeu>/`)
+
+Chaque mini-jeu (`fusee`, `mines`, `craps`...) est un jeu **classique** au
+sens de la section 4, avec son propre trio `<jeu>.html`/`<jeu>.css`/`<jeu>.js`
+et son propre IIFE — la seule différence est la profondeur de chemin (voir
+section 2 : `../../../` au lieu de `../../`, puisqu'on est un niveau plus bas
+que `games/<jeu>/`). Une fois qu'un sous-jeu est prêt, il suffit de passer son
+`ready` à `true` dans le tableau d'`arcade.js` pour le débloquer dans le
+carrousel.
+
+---
+
+## 7. Charte graphique (`core/main.css`)
 
 Variables CSS disponibles partout (déclarées sur `:root`) :
 
@@ -330,22 +409,26 @@ mélanger les deux styles entre le village et les pages de jeu.
 
 ---
 
-## 7. Checklist pour créer un nouveau jeu
+## 8. Checklist pour créer un nouveau jeu
 
 1. Créer un dossier `games/<jeu>/` contenant `<jeu>.html` sur le modèle de
-   `games/roulette/roulette.html` (topbar + `.game-body` vide).
+   `games/roulette/roulette.html` (topbar + `.game-body` vide). Si le jeu fait
+   partie d'une maison-menu existante (ex. Arcade), le créer plutôt dans
+   `games/<hub>/<jeu>/` (voir section 6.2) et passer son `ready` à `true` dans
+   le JS du hub une fois prêt.
 2. Créer `games/<jeu>/<jeu>.css` avec préfixe de classes dédié, variables de
    `core/main.css` uniquement.
 3. Créer `games/<jeu>/<jeu>.js` : IIFE `const <Jeu> = (() => {...})()`, `init()`
    qui injecte dans `.game-body`, mises/paiements via `Wallet`, message de
    statut, `toggleControls`.
-4. Ajouter le jeu dans `GAMES` ou `EXTRA_HOUSES` de `core/lobby.js` (+
-   éventuellement une image dans `assets/misc/batiment/`).
+4. Si c'est un nouveau jeu principal (pas un sous-jeu d'un hub) : ajouter une
+   entrée dans `ALL_HOUSES` de `core/lobby.js` (+ éventuellement une image
+   dans `assets/misc/batiment/`).
 5. Vérifier les chemins relatifs : `../../core/`, `../../assets/`, `../../boisson/`
-   depuis `games/<jeu>/` (deux niveaux, et non plus un seul comme dans l'ancien
-   `html/<jeu>.html`) ; le CSS/JS du jeu lui-même est référencé sans préfixe
-   puisqu'il est dans le même dossier.
+   depuis `games/<jeu>/` (deux niveaux), ou `../../../` depuis un sous-jeu de
+   hub (`games/<hub>/<jeu>/`, trois niveaux) ; le CSS/JS du jeu lui-même est
+   référencé sans préfixe puisqu'il est dans le même dossier.
 6. Tester : le solde (`Wallet`) doit se mettre à jour dans la topbar, et si le jeu
-   n'est pas encore prêt, préférer `locked: true` dans le lobby plutôt que de
-   publier une page cassée (ou utiliser `game-stub.css` pour un écran "bientôt
-   disponible").
+   n'est pas encore prêt, préférer `locked: true` dans le lobby (ou `ready: false`
+   si c'est un sous-jeu de hub) plutôt que de publier une page cassée (ou
+   utiliser `game-stub.css` pour un écran "bientôt disponible").

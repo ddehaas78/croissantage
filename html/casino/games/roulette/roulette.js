@@ -8,10 +8,19 @@ const Roulette = (() => {
   // Ordre réel des numéros sur une roue européenne (0 à 36, un seul zéro)
   const WHEEL_ORDER = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
   const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
-  const CHIP_VALUES = [5, 10, 25, 50, 100];
+  // Jetons : valeurs fixes + jetons "fraction du solde" (1/4, 1/2, ALL),
+  // recalculés en live sur le solde réel à chaque clic / mise à jour.
+  const CHIP_DEFS = [
+    { type: 'fixed', value: 25, label: '25' },
+    { type: 'fixed', value: 50, label: '50' },
+    { type: 'fixed', value: 100, label: '100' },
+    { type: 'fraction', fraction: 0.25, label: '1/4' },
+    { type: 'fraction', fraction: 0.5, label: '1/2' },
+    { type: 'fraction', fraction: 1, label: 'ALL' },
+  ];
   const SLICE_ANGLE = 360 / 37;
 
-  let selectedChip = 10;
+  let selectedChipIndex = 2; // '10' par défaut, comme avant
   let bets = []; // { key, numbers:[...], label, payout, amount }
   let spinning = false;
   let history = []; // derniers numéros sortis
@@ -24,6 +33,18 @@ const Roulette = (() => {
 
   function fmt(n) {
     return n.toLocaleString('fr-FR');
+  }
+
+  /* ---------------- Jetons : montant réel d'un jeton ---------------- */
+  function chipAmount(def) {
+    if (def.type === 'fixed') return def.value;
+    // 'fraction' : calculé en live sur le solde actuel, arrondi à l'entier
+    // inférieur pour ne jamais dépasser ce que le joueur peut miser.
+    return Math.floor(Wallet.get() * def.fraction);
+  }
+
+  function selectedAmount() {
+    return chipAmount(CHIP_DEFS[selectedChipIndex]);
   }
 
   /* ---------------- Construction de la roue (SVG) ---------------- */
@@ -144,7 +165,23 @@ const Roulette = (() => {
   }
 
   function buildChipsHTML() {
-    return CHIP_VALUES.map((v) => `<button type="button" class="rl-chip ${v === selectedChip ? 'active' : ''}" data-chip="${v}">${v}</button>`).join('');
+    return CHIP_DEFS.map((def, i) => {
+      const active = i === selectedChipIndex ? 'active' : '';
+      const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise : ${fmt(chipAmount(def))} 🪙"` : '';
+      return `<button type="button" class="rl-chip ${active}" data-chip-index="${i}"${tooltip}>${def.label}</button>`;
+    }).join('');
+  }
+
+  // Les jetons "fraction" (1/4, 1/2, ALL) affichent leur montant réel en
+  // tooltip ; on la rafraîchit à chaque changement de solde pour qu'elle
+  // reste juste sans devoir re-render toute la liste de jetons.
+  function refreshFractionChipTooltips() {
+    document.querySelectorAll('.rl-chip[data-chip-index]').forEach((btn) => {
+      const def = CHIP_DEFS[Number(btn.dataset.chipIndex)];
+      if (def && def.type === 'fraction') {
+        btn.dataset.tooltip = `Mise : ${fmt(chipAmount(def))} 🪙`;
+      }
+    });
   }
 
   /* ---------------- Init / DOM binding ---------------- */
@@ -189,8 +226,15 @@ const Roulette = (() => {
   function bindEvents(container) {
     container.querySelectorAll('.rl-chip').forEach((btn) => {
       btn.addEventListener('click', () => {
-        selectedChip = Number(btn.dataset.chip);
+        selectedChipIndex = Number(btn.dataset.chipIndex);
         container.querySelectorAll('.rl-chip').forEach((c) => c.classList.toggle('active', c === btn));
+        const def = CHIP_DEFS[selectedChipIndex];
+        const amount = chipAmount(def);
+        setMessage(
+          def.type === 'fraction'
+            ? `Jeton sélectionné : ${def.label} du solde (${fmt(amount)} 🪙).`
+            : `Jeton sélectionné : ${fmt(amount)} 🪙.`
+        );
       });
     });
 
@@ -213,7 +257,7 @@ const Roulette = (() => {
 
   function placeBet(btn) {
     if (spinning) return;
-    const amount = selectedChip;
+    const amount = selectedAmount();
     if (!Wallet.canAfford(amount)) {
       setMessage('Solde insuffisant pour ce jeton.');
       return;
@@ -243,7 +287,7 @@ const Roulette = (() => {
     const key = btn.dataset.key;
     const entry = bets.find((b) => b.key === key);
     if (!entry) return;
-    const refund = Math.min(selectedChip, entry.amount);
+    const refund = Math.min(selectedAmount(), entry.amount);
     entry.amount -= refund;
     Wallet.add(refund);
     if (entry.amount <= 0) {

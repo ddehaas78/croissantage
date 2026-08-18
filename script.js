@@ -54,7 +54,7 @@ function videoCardHTML(v) {
 
 function promoHTML(promo) {
     return `
-        <a href="html/trap.html" class="block">
+        <a href="html/site/trap.html" class="block">
             <div class="promo-card">
                 <span class="promo-tag">${promo.badge}</span>
                 <img src="${promo.img}" alt="${promo.alt}" class="w-full h-48 object-cover" loading="lazy">

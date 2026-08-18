@@ -14,11 +14,20 @@ const Baccara = (() => {
   ];
   const RANK_LABELS = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K' };
 
-  const BASE_BET = 50;
-  const BET_MULTIPLIERS = [1, 2, 5, 10, 20];
+  // Jetons : valeurs fixes + jetons "fraction du solde" (1/4, 1/2, ALL),
+  // recalculés en live sur le solde réel (le Wallet n'est débité qu'au
+  // moment de DISTRIBUER, donc pas d'accumulation à gérer ici).
+  const CHIP_DEFS = [
+    { type: 'fixed', value: 25, label: '25' },
+    { type: 'fixed', value: 50, label: '50' },
+    { type: 'fixed', value: 100, label: '100' },
+    { type: 'fraction', fraction: 0.25, label: '1/4' },
+    { type: 'fraction', fraction: 0.5, label: '1/2' },
+    { type: 'fraction', fraction: 1, label: 'ALL' },
+  ];
 
   let betType = null;
-  let betMultiplier = BET_MULTIPLIERS[0];
+  let selectedChipIndex = 1; // '50' par défaut
   let dealing = false;
   let built = false;
 
@@ -128,8 +137,13 @@ const Baccara = (() => {
   }
 
   /* ---------------- Contrôles de mise ---------------- */
+  function chipAmount(def) {
+    if (def.type === 'fixed') return def.value;
+    return Math.floor(Wallet.get() * def.fraction);
+  }
+
   function betAmount() {
-    return BASE_BET * betMultiplier;
+    return chipAmount(CHIP_DEFS[selectedChipIndex]);
   }
 
   function canBet() {
@@ -146,11 +160,11 @@ const Baccara = (() => {
     updateDealButton();
   }
 
-  function selectMultiplier(mult) {
+  function selectChip(index) {
     if (!canBet()) return;
-    betMultiplier = mult;
+    selectedChipIndex = index;
     document.querySelectorAll('.bc-mult-btn').forEach((btn) => {
-      btn.classList.toggle('active', Number(btn.dataset.mult) === mult);
+      btn.classList.toggle('active', Number(btn.dataset.chipIndex) === index);
     });
     updateAmountDisplay();
     updateChipDisplay();
@@ -160,6 +174,18 @@ const Baccara = (() => {
   function updateAmountDisplay() {
     const el = document.getElementById('bc-amount');
     if (el) el.textContent = fmt(betAmount());
+    refreshFractionChipTooltips();
+  }
+
+  // Les jetons "fraction" (1/4, 1/2, ALL) affichent leur montant réel en
+  // tooltip ; on la rafraîchit à chaque changement de solde.
+  function refreshFractionChipTooltips() {
+    document.querySelectorAll('.bc-mult-btn[data-chip-index]').forEach((btn) => {
+      const def = CHIP_DEFS[Number(btn.dataset.chipIndex)];
+      if (def && def.type === 'fraction') {
+        btn.dataset.tooltip = `Mise : ${fmt(chipAmount(def))} 🪙`;
+      }
+    });
   }
 
   // Petit jeton dessiné directement sur la zone de mise choisie, avec le
@@ -318,9 +344,11 @@ const Baccara = (() => {
   }
 
   function buildMultipliersHTML() {
-    return BET_MULTIPLIERS.map(
-      (m) => `<button type="button" class="bc-mult-btn${m === betMultiplier ? ' active' : ''}" data-mult="${m}">x${m}</button>`
-    ).join('');
+    return CHIP_DEFS.map((def, i) => {
+      const active = i === selectedChipIndex ? ' active' : '';
+      const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise : ${fmt(chipAmount(def))} 🪙"` : '';
+      return `<button type="button" class="bc-mult-btn${active}" data-chip-index="${i}"${tooltip}>${def.label}</button>`;
+    }).join('');
   }
 
   function init() {
@@ -360,10 +388,15 @@ const Baccara = (() => {
       btn.addEventListener('click', () => selectBetType(btn.dataset.type));
     });
     container.querySelectorAll('.bc-mult-btn').forEach((btn) => {
-      btn.addEventListener('click', () => selectMultiplier(Number(btn.dataset.mult)));
+      btn.addEventListener('click', () => selectChip(Number(btn.dataset.chipIndex)));
     });
     document.getElementById('bc-deal-btn').addEventListener('click', deal);
     document.getElementById('bc-new-round-btn').addEventListener('click', newRound);
+
+    Wallet.onChange(() => {
+      updateAmountDisplay();
+      updateDealButton();
+    });
 
     Wallet.refreshUI();
     updateDealButton();

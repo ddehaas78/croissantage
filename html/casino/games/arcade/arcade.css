@@ -1,0 +1,183 @@
+/* arcade.css — Hub Arcade : carrousel façon "Mii Channel"
+   Le menu affiche les jeux solo (fusée, mines, craps...) en arc, celui du
+   centre étant le jeu sélectionné. Préfixe de classes : ac-*
+*/
+
+.ac-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 40px 20px 60px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.ac-carousel {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  outline: none;
+}
+
+.ac-stage {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  perspective: 1100px;
+  touch-action: pan-y;
+}
+
+.ac-track {
+  position: absolute;
+  inset: 0;
+}
+
+.ac-slot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 170px;
+  height: 200px;
+  border-radius: var(--radius);
+  border: 2px solid var(--gold-dim);
+  background: linear-gradient(160deg, var(--panel-light), var(--panel));
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.45s cubic-bezier(.2, .8, .2, 1), opacity 0.45s ease, border-color 0.2s ease;
+  color: var(--cream);
+  font-family: var(--font-body);
+  padding: 0;
+}
+
+.ac-slot:hover {
+  border-color: var(--gold-bright);
+}
+
+.ac-slot-active {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 0 3px rgba(245, 217, 140, 0.25), var(--shadow);
+}
+
+.ac-slot-icon {
+  font-size: 52px;
+  line-height: 1;
+}
+
+.ac-slot-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.ac-slot-lock {
+  font-size: 11px;
+  color: var(--gold-dim);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.ac-nav {
+  background: var(--panel);
+  border: 2px solid var(--gold-dim);
+  color: var(--gold-bright);
+  font-size: 26px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 5;
+  flex-shrink: 0;
+  transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+}
+
+.ac-nav:hover {
+  background: var(--panel-light);
+  border-color: var(--gold-bright);
+  transform: scale(1.08);
+}
+
+.ac-info {
+  text-align: center;
+}
+
+.ac-info-icon {
+  font-size: 34px;
+}
+
+.ac-info-name {
+  font-family: var(--font-display);
+  color: var(--gold-bright);
+  margin: 6px 0 4px;
+  font-size: 26px;
+}
+
+.ac-info-tagline {
+  color: var(--cream-dim);
+  margin-bottom: 16px;
+}
+
+.ac-play-btn-locked {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.ac-play-btn-flash {
+  background: var(--burgundy-bright) !important;
+}
+
+.ac-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.ac-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  opacity: 0.5;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.ac-dot.active {
+  opacity: 1;
+  background: var(--gold-bright);
+}
+
+@media (max-width: 860px) {
+  .ac-stage {
+    height: 220px;
+  }
+  .ac-slot {
+    width: 140px;
+    height: 170px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ac-stage {
+    height: 190px;
+  }
+  .ac-slot {
+    width: 120px;
+    height: 150px;
+  }
+  .ac-slot-icon {
+    font-size: 40px;
+  }
+  .ac-nav {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+}
