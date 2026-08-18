@@ -35,6 +35,14 @@ const Arcade = (() => {
       ready: true,
     },
     {
+      id: 'chicken',
+      name: 'Chicken Road',
+      icon: '🐔',
+      tagline: 'Traversez la route, encaissez avant le crash.',
+      href: './chicken/chicken.html',
+      ready: true,
+    },
+    {
       id: 'craps',
       name: 'Craps',
       icon: '🎲',

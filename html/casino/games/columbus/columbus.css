@@ -552,3 +552,95 @@
   .cd-paytable-grid{ grid-template-columns: repeat(2, 1fr); }
   .cd-paytable-side{ max-width:100%; max-height:none; }
 }
+
+/* ---------- Popup de confirmation (encaissement Free Spins) ---------- */
+.cd-confirm-overlay{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0,.65);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+  animation: cdConfirmFadeIn .18s ease;
+}
+@keyframes cdConfirmFadeIn{
+  from{ opacity:0; }
+  to{ opacity:1; }
+}
+
+.cd-confirm-box{
+  width:100%;
+  max-width:360px;
+  margin:16px;
+  text-align:center;
+  padding:22px 24px;
+  border-radius:16px;
+  border:2px solid var(--gold);
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  box-shadow: 0 14px 30px rgba(0,0,0,.5), 0 0 30px rgba(212,175,55,.25);
+  animation: cdConfirmPopIn .22s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes cdConfirmPopIn{
+  from{ opacity:0; transform: scale(.9) translateY(8px); }
+  to{ opacity:1; transform: scale(1) translateY(0); }
+}
+
+.cd-confirm-title{
+  font-family: var(--font-display);
+  font-weight:800;
+  letter-spacing:.03em;
+  font-size:1rem;
+  color: var(--gold-bright);
+  margin-bottom:10px;
+}
+
+.cd-confirm-message{
+  font-size:.78rem;
+  line-height:1.5;
+  color: var(--cream-dim);
+  margin-bottom:20px;
+}
+.cd-confirm-message strong{
+  color: var(--gold-bright);
+}
+
+.cd-confirm-actions{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+}
+
+.cd-confirm-btn{
+  padding:10px 20px;
+  border-radius:10px;
+  font-family: var(--font-display);
+  font-weight:700;
+  letter-spacing:.03em;
+  font-size:.74rem;
+  cursor:pointer;
+  transition: transform .12s ease, filter .12s ease;
+}
+.cd-confirm-btn:hover{ transform: translateY(-2px); }
+
+.cd-confirm-ok{
+  border:none;
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold) 70%, var(--gold-dim));
+  color:#241a08;
+  box-shadow: 0 4px 14px rgba(212,175,55,.4);
+}
+.cd-confirm-ok:hover{ filter:brightness(1.08); }
+
+.cd-confirm-cancel{
+  background: transparent;
+  border:1px solid var(--gold-dim);
+  color: var(--cream-dim);
+}
+.cd-confirm-cancel:hover{ border-color: var(--gold-bright); color: var(--gold-bright); }
+
+/* Responsive */
+@media (max-width: 620px){
+  .cd-confirm-box{ padding:18px 16px; }
+  .cd-confirm-title{ font-size:.9rem; }
+  .cd-confirm-message{ font-size:.72rem; }
+}

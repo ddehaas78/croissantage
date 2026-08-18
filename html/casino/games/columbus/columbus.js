@@ -37,7 +37,7 @@ const Columbus = (() => {
   const SYMBOL_WEIGHTS = [
     ['WILD', 2], ['QUEEN', 3], ['NECKLACE', 4], ['SEXTANT', 5],
     ['CARD_A', 7], ['CARD_K', 7], ['CARD_Q', 7], ['CARD_J', 8], ['CARD_10', 8],
-    ['SCATTER', 3],
+    ['SCATTER', 10],
   ];
 
   const LINES_COUNT = 10; // Toutes les lignes sont désormais actives en permanence
@@ -58,6 +58,7 @@ const Columbus = (() => {
   let inFreeSpins = false;
   let freeSpinsRemaining = 0;
   let freeSpinsTotalWin = 0;
+  let freeSpinsBetPerLine = null; // mise/ligne verrouillée pendant les Free Spins
   let pendingWin = 0;
   let coinRotation = 0;
   let gambling = false;
@@ -82,10 +83,17 @@ const Columbus = (() => {
   // (table des paiements), mais la mise totale (celle réellement débitée)
   // est désormais directement la valeur du jeton sélectionné.
   function refreshBetPerLine() {
+    if (inFreeSpins && freeSpinsBetPerLine !== null) {
+      betPerLine = freeSpinsBetPerLine;
+      return;
+    }
     betPerLine = chipAmount(CHIP_DEFS[selectedChipIndex]) / LINES_COUNT;
   }
 
   function getTotalBet() {
+    if (inFreeSpins && freeSpinsBetPerLine !== null) {
+      return freeSpinsBetPerLine * LINES_COUNT;
+    }
     return chipAmount(CHIP_DEFS[selectedChipIndex]);
   }
 
@@ -184,7 +192,18 @@ const Columbus = (() => {
 
     container.innerHTML = `
       <div class="cd-wrap">
-        <div id="cd-fs-banner" class="cd-fs-banner" hidden>🎉 FREE SPINS — <span id="cd-fs-count">10</span> tours restants · Gains en cours : <span id="cd-fs-total">0</span> 🪙</div>
+        <div id="cd-fs-banner" class="cd-fs-banner" hidden>
+          <div class="cd-fs-title">
+            🎉 FREE SPINS
+            <button type="button" class="cd-fs-cashout-btn" id="cd-fs-cashout-btn">
+              💰 ENCAISSER
+            </button>
+          </div>
+          <div class="cd-fs-info">
+            <span id="cd-fs-count">10</span> tours restants ·
+            Gains en cours : <span id="cd-fs-total">0</span> 🪙
+          </div>
+        </div>
 
         <div class="cd-layout">
           <div id="cd-paytable-panel" class="cd-paytable-side" hidden>
@@ -253,7 +272,7 @@ const Columbus = (() => {
 
     bindEvents(container);
     Wallet.refreshUI();
-    updateTotalBetDisplay();
+    refreshBetState();
   }
 
   function bindEvents(container) {
@@ -263,21 +282,22 @@ const Columbus = (() => {
     container.querySelector('#cd-spin-btn').addEventListener('click', spin);
     container.querySelector('#cd-paytable-btn').addEventListener('click', () => togglePaytable());
     container.querySelector('#cd-paytable-close').addEventListener('click', () => togglePaytable(false));
+
+    // Encaissement anticipé des gains des Free Spins
+    container.querySelector('#cd-fs-cashout-btn').addEventListener('click', cashOutFreeSpins);
+
     container.querySelector('#cd-gamble-pile').addEventListener('click', () => gambleChoice('pile'));
     container.querySelector('#cd-gamble-face').addEventListener('click', () => gambleChoice('face'));
     container.querySelector('#cd-gamble-cashout').addEventListener('click', cashOutGamble);
     Wallet.onChange(() => {
-      // On ne recalcule la mise "fraction" (1/4, 1/2, ALL) que lorsque le
-      // joueur peut à nouveau modifier ses contrôles, c'est-à-dire une fois
-      // le tour totalement résolu (gains recrédités compris). Sinon, le
-      // débit de la mise elle-même déclenchait ce onChange en pleine
-      // résolution et recalculait la mise sur un solde déjà amputé de la
-      // mise en cours (pas encore des gains) -> effondrement en cascade
-      // (1/4 du solde, puis 1/4 de ce qu'il en reste, etc.).
+      // Wallet.add() / Wallet.subtract() déclenchent ce callback
+      // immédiatement.
+      //
+      // On ne recalcule donc les mises fractionnées que lorsque
+      // le tour est réellement terminé et que le solde est définitif.
       if (!canEditControls()) return;
-      refreshBetPerLine();
-      updateTotalBetDisplay();
-      refreshFractionChipTooltips();
+
+      refreshBetState();
     });
   }
 
@@ -301,18 +321,32 @@ const Columbus = (() => {
   function selectChip(index) {
     if (!canEditControls()) return;
     if (!CHIP_DEFS[index]) return;
+
     selectedChipIndex = index;
-    refreshBetPerLine();
+
     document.querySelectorAll('.cd-bet-mult-btn').forEach((btn) => {
-      btn.classList.toggle('active', Number(btn.dataset.chipIndex) === selectedChipIndex);
+      btn.classList.toggle(
+        'active',
+        Number(btn.dataset.chipIndex) === selectedChipIndex
+      );
     });
-    updateTotalBetDisplay();
-    refreshPaytableValues();
+
+    refreshBetState();
   }
 
   function updateTotalBetDisplay() {
     const el = document.getElementById('cd-total-bet');
     if (el) el.textContent = fmt(getTotalBet());
+  }
+
+  // Rafraîchit tout ce qui dépend du solde actuel.
+  // Important pour les mises fractionnées 1/4, 1/2 et ALL
+  // ainsi que pour les valeurs affichées dans la paytable.
+  function refreshBetState() {
+    refreshBetPerLine();
+    updateTotalBetDisplay();
+    refreshFractionChipTooltips();
+    refreshPaytableValues();
   }
 
   function toggleControls(enabled) {
@@ -331,16 +365,36 @@ const Columbus = (() => {
     const banner = document.getElementById('cd-fs-banner');
     const countEl = document.getElementById('cd-fs-count');
     const totalEl = document.getElementById('cd-fs-total');
+    const cashoutBtn = document.getElementById('cd-fs-cashout-btn');
     const stage = document.getElementById('cd-reels-stage');
+
     if (!banner) return;
+
     if (inFreeSpins) {
       banner.hidden = false;
-      if (countEl) countEl.textContent = freeSpinsRemaining;
-      if (totalEl) totalEl.textContent = fmt(freeSpinsTotalWin);
-      if (stage) stage.classList.add('cd-fs-glow');
+
+      if (countEl) {
+        countEl.textContent = freeSpinsRemaining;
+      }
+
+      if (totalEl) {
+        totalEl.textContent = fmt(freeSpinsTotalWin);
+      }
+
+      // Impossible d'encaisser s'il n'y a encore aucun gain.
+      if (cashoutBtn) {
+        cashoutBtn.disabled = freeSpinsTotalWin <= 0 || spinning;
+      }
+
+      if (stage) {
+        stage.classList.add('cd-fs-glow');
+      }
     } else {
       banner.hidden = true;
-      if (stage) stage.classList.remove('cd-fs-glow');
+
+      if (stage) {
+        stage.classList.remove('cd-fs-glow');
+      }
     }
   }
 
@@ -404,14 +458,98 @@ const Columbus = (() => {
     }
   }
 
-  /* ---------------- Spin ---------------- */
+    /* ---------------- Popup de confirmation stylée ---------------- */
+  function showConfirmModal({ title, message, confirmLabel, cancelLabel }) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'cd-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="cd-confirm-box">
+          <div class="cd-confirm-title">${title}</div>
+          <div class="cd-confirm-message">${message}</div>
+          <div class="cd-confirm-actions">
+            <button type="button" class="cd-confirm-btn cd-confirm-cancel">${cancelLabel}</button>
+            <button type="button" class="cd-confirm-btn cd-confirm-ok">${confirmLabel}</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      const cleanup = (result) => {
+        overlay.remove();
+        resolve(result);
+      };
+
+      overlay.querySelector('.cd-confirm-ok').addEventListener('click', () => cleanup(true));
+      overlay.querySelector('.cd-confirm-cancel').addEventListener('click', () => cleanup(false));
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) cleanup(false);
+      });
+    });
+  }
+
+  /* ---------------- Encaissement anticipé des Free Spins ---------------- */
+  async function cashOutFreeSpins() {
+    // Impossible d'encaisser hors Free Spins.
+    if (!inFreeSpins) return;
+
+    // Impossible d'encaisser pendant l'animation d'un spin.
+    if (spinning) return;
+
+    // Aucun gain à récupérer.
+    if (freeSpinsTotalWin <= 0) return;
+
+    const win = freeSpinsTotalWin;
+    const remaining = freeSpinsRemaining;
+
+    const confirmed = await showConfirmModal({
+      title: '⚠️ Encaisser maintenant ?',
+      message: `Vous allez encaisser <strong>${fmt(win)} 🪙</strong>.<br>Les <strong>${remaining}</strong> Free Spins restants seront annulés.`,
+      confirmLabel: '💰 Encaisser',
+      cancelLabel: 'Annuler',
+    });
+
+    if (!confirmed) return;
+
+    // On sort immédiatement du mode Free Spins.
+    inFreeSpins = false;
+    freeSpinsRemaining = 0;
+    freeSpinsBetPerLine = null;
+
+    // On vide le compteur AVANT Wallet.add().
+    // Wallet.add() déclenche Wallet.onChange() immédiatement.
+    freeSpinsTotalWin = 0;
+
+    Wallet.add(win);
+
+    hideGamblePanel();
+
+    setMessage(
+      `💰 ${fmt(win)} 🪙 encaissés ! Les Free Spins restants ont été annulés.`
+    );
+
+    updateFreeSpinsBanner();
+
+    // Le solde est maintenant définitif.
+    refreshBetState();
+    toggleControls(true);
+  }
+
+    /* ---------------- Spin ---------------- */
   function spin() {
     if (spinning || gambling) return;
 
     if (pendingWin > 0) {
-      // La personne relance directement sans passer par "Encaisser" : on encaisse pour elle
-      Wallet.add(pendingWin);
+      // La personne relance directement sans passer par "Encaisser" :
+      // on encaisse automatiquement le gain précédent.
+      //
+      // IMPORTANT :
+      // pendingWin doit être remis à 0 AVANT Wallet.add(),
+      // car Wallet.add() déclenche Wallet.onChange() immédiatement.
+      const win = pendingWin;
       pendingWin = 0;
+
+      Wallet.add(win);
       hideGamblePanel();
     }
 
@@ -635,7 +773,14 @@ const Columbus = (() => {
     if (inFreeSpins) {
       freeSpinsRemaining -= 1;
       freeSpinsTotalWin += totalWin;
-      if (totalWin > 0) spawnCoinBurst(Math.min(70, 25 + wins.length * 10));
+
+      // Met immédiatement à jour le compteur et le bouton
+      // d'encaissement après chaque Free Spin.
+      updateFreeSpinsBanner();
+
+      if (totalWin > 0) {
+        spawnCoinBurst(Math.min(70, 25 + wins.length * 10));
+      }
 
       if (scatterTriggered) {
         freeSpinsRemaining += 10;
@@ -651,32 +796,54 @@ const Columbus = (() => {
 
       if (freeSpinsRemaining <= 0) {
         inFreeSpins = false;
+        freeSpinsBetPerLine = null; // mise à nouveau libre pour le prochain tour
+
+        // Le mode Free Spins est terminé : on masque la bannière.
         updateFreeSpinsBanner();
 
         spinning = false;
 
         if (freeSpinsTotalWin > 0) {
           pendingWin = freeSpinsTotalWin;
-          setMessage(`🎉 Free Spins terminés ! Gain total : ${fmt(freeSpinsTotalWin)} 🪙. Encaisser ou tenter de doubler ?`);
+
+          // Le compteur des gains Free Spins n'a plus besoin
+          // de conserver la valeur : elle est maintenant dans pendingWin.
+          freeSpinsTotalWin = 0;
+
+          setMessage(
+            `🎉 Free Spins terminés ! Gain total : ${fmt(pendingWin)} 🪙. Encaisser ou tenter de doubler ?`
+          );
+
           offerGamble();
         } else {
+          freeSpinsTotalWin = 0;
           setMessage('Free Spins terminés ! Aucun gain sur ces tours.');
           finishRound();
         }
+
         return;
       }
 
       spinning = false;
+
+      // Le spin est maintenant terminé : le bouton "ENCAISSER"
+      // doit redevenir cliquable s'il y a des gains.
+      updateFreeSpinsBanner();
+
       finishRound();
       return;
     }
 
     // Jeu de base
     if (scatterTriggered) {
+      freeSpinsBetPerLine = betPerLine; // verrouille la mise du spin déclencheur
       inFreeSpins = true;
       freeSpinsRemaining = 10;
       freeSpinsTotalWin = 0;
+
+      // On affiche immédiatement le mode Free Spins.
       updateFreeSpinsBanner();
+
       spawnCoinBurst(60);
       setMessage('⛵⛵⛵ 3 Caravelles ! 10 Free Spins gagnés !');
     } else if (totalWin > 0) {
@@ -698,11 +865,10 @@ const Columbus = (() => {
 
   function finishRound() {
     toggleControls(true);
-    // Le solde est désormais définitif pour ce tour (gains recrédités
-    // compris) : on peut recalculer en toute sécurité une mise "fraction".
-    refreshBetPerLine();
-    updateTotalBetDisplay();
-    refreshFractionChipTooltips();
+
+    // Le solde est désormais définitif pour ce tour.
+    // On met à jour la mise, les boutons fractionnés et la paytable.
+    refreshBetState();
   }
 
   function renderWinsList(wins, totalWin) {
@@ -785,9 +951,21 @@ const Columbus = (() => {
 
   function cashOutGamble() {
     if (pendingWin <= 0 || gambling) return;
-    Wallet.add(pendingWin);
-    setMessage(`Encaissé : ${fmt(pendingWin)} 🪙 !`);
+
+    // On sauvegarde le gain.
+    const win = pendingWin;
+
+    // IMPORTANT :
+    // On vide pendingWin AVANT Wallet.add().
+    //
+    // Wallet.add() déclenche Wallet.onChange() immédiatement.
+    // Si pendingWin était encore > 0 à ce moment-là,
+    // canEditControls() empêcherait le recalcul de la mise.
     pendingWin = 0;
+
+    Wallet.add(win);
+
+    setMessage(`Encaissé : ${fmt(win)} 🪙 !`);
     hideGamblePanel();
     finishRound();
   }
