@@ -92,9 +92,12 @@ const DECO_IMAGES = {
   plant: "plant-deco.png",
 };
 
-/* Panneau décoratif posé au pied de certains bâtiments, à gauche ou à
-   droite selon la maison. Même logique de chemin que les autres images :
-   résolu en JS via style.backgroundImage, donc relatif à lobby.html. */
+/* Panneau décoratif et interactif posé au pied de certains bâtiments (une
+   case en dessous, à gauche ou à droite selon la maison — voir SIGN_SIDE).
+   Fonctionne comme une porte verrouillée : bloque le passage et affiche son
+   texte quand le joueur lui fait face. Même logique de chemin que les
+   autres images : résolu en JS via style.backgroundImage, donc relatif à
+   lobby.html. */
 const SIGN_IMAGE = "assets/misc/lobby/deco/panneau.png";
 const SIGN_SIDE = {
   blackjack: "left",
@@ -153,6 +156,16 @@ ALL_HOUSES.forEach(h => {
   colliders[bar.y + 1][bar.x + 1] = bar.facadeCode;
   colliders[bar.y + 1][bar.x + 2] = bar.facadeCode;
 }
+
+/* ---------- Panneaux au pied de certains bâtiments ---------- */
+ALL_HOUSES.forEach((h, i) => {
+  const side = SIGN_SIDE[h.key];
+  if (!side) return;
+  h.signCode = 40 + i;
+  const sx = side === "left" ? h.x : h.x + h.width - 1;
+  const sy = h.y + 2; // une rangée sous la façade/porte
+  colliders[sy][sx] = h.signCode;
+});
 
 /* ---------- Allées en tapis rouge ---------- */
 const CARPET = 2;
@@ -222,6 +235,15 @@ function registerHouseTypes(house) {
 }
 ALL_HOUSES.forEach(registerHouseTypes);
 
+function registerSignType(house) {
+  if (!house.signCode) return;
+  tileTypes[house.signCode] = {
+    collide: true, kind: "sign", house: house.key,
+    text: house.locked ? `${house.name}...` : `Entrée : ${house.name}`,
+  };
+}
+ALL_HOUSES.forEach(registerSignType);
+
 /* ---------- Rendu de la grille ---------- */
 mapEl.style.width = `${WIDTH * TILE}px`;
 mapEl.style.height = `${HEIGHT * TILE}px`;
@@ -279,16 +301,7 @@ for (let y = 0; y < HEIGHT; y++) {
       div.style.backgroundSize = `${TILE}px ${TILE}px`;
     } else if (type.kind === "door") {
       const iconHtml = houseImg ? '' : `<span class="icon">${type.icon}</span>`;
-      div.innerHTML = `<span class="label">${type.label}</span>${iconHtml}`;
-      if (houseImg) {
-        // dy = nombre de tuiles au-dessus de la porte DANS ce bâtiment précis
-        // (1 pour une maison classique toit+porte, 0 pour le bar dont la porte
-        // est déjà sur la rangée du haut). On remonte le label d'exactement
-        // ce qu'il faut pour dégager tout le bâtiment, jamais plus.
-        const dy = y - place.y;
-        const label = div.querySelector('.label');
-        label.style.top = `calc(-1 * ${dy} * var(--tile-size) - 26px)`;
-      }
+      div.innerHTML = iconHtml;
     } else if (type.kind === "roof") {
       const centerX = place.x + Math.floor(place.width / 2);
       div.innerHTML = (!houseImg && x === centerX) ? `<span class="icon">${type.icon}</span>` : '';
@@ -300,6 +313,14 @@ for (let y = 0; y < HEIGHT; y++) {
       div.classList.add('has-image');
       div.style.backgroundImage = `url("${PATH_IMAGE}")`;
       div.style.backgroundSize = `${TILE}px ${TILE}px`;
+    } else if (type.kind === "sign") {
+      div.classList.add('has-image', 'sign-image');
+      if (SIGN_SIDE[type.house] === "right") div.classList.add('sign-flip');
+      div.style.backgroundImage = `url("${SIGN_IMAGE}"), url("${CARPET_IMAGE}")`;
+      div.style.backgroundSize = `contain, ${TILE}px ${TILE}px`;
+      div.style.backgroundRepeat = 'no-repeat, no-repeat';
+      div.style.backgroundPosition = 'center bottom, top left';
+      div.style.imageRendering = 'pixelated';
     } else if (type.kind === "deco") {
       if (type.image) {
         div.classList.add('has-image', 'deco-image');
@@ -318,23 +339,6 @@ for (let y = 0; y < HEIGHT; y++) {
     mapEl.appendChild(div);
   }
 }
-
-/* ---------- Panneaux décoratifs au pied des bâtiments ---------- */
-ALL_HOUSES.forEach(house => {
-  const side = SIGN_SIDE[house.key];
-  if (!side) return;
-  // Rangée du bas du bâtiment (façade/porte) : y du toit + 1, sauf pour le
-  // bar dont la disposition est inversée (porte en haut) — non concerné ici.
-  const bottomRowY = house.y + 1;
-  const cornerX = side === "left" ? house.x : house.x + house.width - 1;
-
-  const sign = document.createElement('div');
-  sign.className = `building-sign sign-${side}`;
-  sign.style.left = `${cornerX * TILE}px`;
-  sign.style.top = `${bottomRowY * TILE}px`;
-  sign.style.backgroundImage = `url("${SIGN_IMAGE}")`;
-  mapEl.appendChild(sign);
-});
 
 
 /* ---------- État du joueur ---------- */
