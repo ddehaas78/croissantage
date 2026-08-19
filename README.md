@@ -382,6 +382,62 @@ Pour ajouter une nouvelle maison :
 6. Le pathfinding (Dijkstra) et les collisions se recalculent automatiquement à
    partir de `colliders` : pas besoin de toucher à `PathFind`.
 
+### 5.1 Textures de sol (`core/lobby.js`)
+
+Trois textures distinctes, chacune résolue en JS via `style.backgroundImage`
+donc **relative à `lobby.html`** (pas à `lobby.css`, contrairement à un `url()`
+écrit directement dans le CSS) :
+
+| Constante | Fichier attendu | Appliquée à |
+|---|---|---|
+| `CARPET_IMAGE` | `assets/misc/lobby/sol/carpet-rouge.png` | sol nu (`kind: "floor"`, code `0`) — sert aussi de fond sous les images de bâtiments et de décos, visible dès que l'image a des zones transparentes |
+| `PATH_IMAGE` | `assets/misc/lobby/sol/chemin.png` | allées + boulevard (`kind: "carpet"`, code `CARPET = 2`) |
+| `CONTOUR_IMAGE` | `assets/misc/lobby/sol/contour.png` | murs du pourtour de la carte (`kind: "wall"`, code `1`) |
+
+⚠️ Piège : `CARPET_IMAGE` désigne le sol nu, pas les allées en tapis — le nom
+prête à confusion mais remonte à l'historique du fichier (l'ancien tapis rouge
+couvrait aussi bien le sol que les allées). `PATH_IMAGE` est la vraie texture
+du "chemin".
+
+### 5.2 Panneaux interactifs au pied des bâtiments (`SIGN_SIDE`)
+
+Certains bâtiments ont un panneau (`assets/misc/lobby/deco/panneau.png`) posé
+au sol juste devant, une case sous la façade, à gauche ou à droite selon
+`SIGN_SIDE` :
+```js
+const SIGN_SIDE = {
+  blackjack: "left", roulette: "left", arcade: "left", baccara: "left",
+  poker: "right", slots: "right", "future-right": "right", "future-bottom-2": "right",
+};
+```
+- C'est une **vraie tuile de la grille** (comme une porte ou une déco), pas un
+  simple visuel flottant : elle bloque le passage (`collide: true`) et affiche
+  son texte (le nom du jeu) dans la popup du bas via le système générique de
+  collision — même mécanisme que les portes, rien à coder en plus.
+- Un panneau côté "right" est retourné horizontalement en CSS (`.sign-flip`,
+  `transform: scaleX(-1)`) pour qu'il semble "regarder" vers le bâtiment.
+- Le bar n'a volontairement pas de panneau (absent de `SIGN_SIDE`).
+- Pas de garde-fou automatique : ajouter une maison à `SIGN_SIDE` sans
+  vérifier que la case calculée (une sous la façade, à gauche/droite) tombe
+  bien sur du sol libre — sinon elle écrase silencieusement une autre tuile
+  (allée, déco...).
+- Le nom du bâtiment ne flotte plus au-dessus de la porte (l'ancien `<span
+  class="label">`) : le panneau a repris ce rôle. Les règles CSS
+  `.tile.door .label` / `.tile.door.has-image .label` existent encore dans
+  `lobby.css` mais ne sont plus utilisées par le rendu JS.
+
+### 5.3 Vitesse de déplacement : deux valeurs à garder synchronisées
+
+Le déplacement case par case combine un `setInterval` en JS et une transition
+CSS :
+- `delay` (JS, `core/lobby.js`, actuellement `220`) : temps entre deux cases.
+- `--moving-speed` (CSS, `core/lobby.css`, actuellement `220ms`) : durée du
+  glissement visuel du joueur.
+
+Ces deux valeurs **doivent rester égales**. Si `--moving-speed` est plus
+courte que `delay`, le perso finit son glissement avant que la case suivante
+ne démarre → micro-arrêt visible à chaque pas.
+
 ---
 
 ## 6. Maison-menu avec sous-jeux — exemple de référence : Arcade

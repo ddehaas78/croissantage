@@ -13,7 +13,7 @@
   --tile-size: 64px;
   --player-x: 0;
   --player-y: 0;
-  --moving-speed: 180ms;
+  --moving-speed: 220ms;
 
   /* --- Sprite du joueur (façon vieux Pokémon) --- */
   /* --player-sprite-v : ligne du spritesheet = direction (0 bas, -1 haut, -2 gauche, -3 droite) */
@@ -169,13 +169,11 @@ html, body {
   filter: grayscale(1) brightness(0.8);
 }
 .tile.door.has-image .label {
-  /* Place l'étiquette DANS la zone vide réservée en haut de l'image du
-     bâtiment (le "cadre rouge"), au lieu de flotter au-dessus.
-     -26px = comportement par défaut (juste au-dessus de la tuile porte).
-     Plus la valeur est négative, plus l'étiquette remonte vers le haut de
-     l'image (le toit) ; plus elle se rapproche de 0, plus elle descend vers
-     la porte. Ajuste ce chiffre pour coller pile à ta zone réservée. */
-  top: -48px;
+  /* Décalage par défaut (identique aux portes sans image) ; le vrai
+     positionnement, qui dépend de la hauteur du bâtiment au-dessus de la
+     porte, est calculé au cas par cas en JS (voir buildHouse / rendu de la
+     grille) et posé en inline-style sur chaque label. */
+  top: -26px;
 }
 
 .tile.deco {
@@ -187,6 +185,15 @@ html, body {
 .tile.deco .icon {
   font-size: 26px;
   opacity: 0.85;
+}
+
+/* Panneau interactif au pied de certains bâtiments : même rendu qu'une
+   déco (image posée sur le sol), mais bloque le passage (comme un mur) et
+   affiche son texte via le système générique de collision. Le mirroring
+   fait que le panneau "regarde" vers le bâtiment selon le côté où il est
+   posé (voir SIGN_SIDE en JS). */
+.tile.sign-flip {
+  transform: scaleX(-1);
 }
 
 /* ============================================================

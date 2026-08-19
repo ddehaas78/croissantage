@@ -72,12 +72,39 @@ const HOUSE_IMAGES = {
    style.backgroundImage, donc relatif à lobby.html. */
 const CARPET_IMAGE = "assets/misc/lobby/sol/carpet-rouge.png";
 
+/* Texture des chemins/allées (tuiles "carpet" = code CARPET, les allées
+   verticales sous chaque porte + le boulevard horizontal). Même logique de
+   chemin que CARPET_IMAGE : résolu en JS via style.backgroundImage, donc
+   relatif à lobby.html. */
+const PATH_IMAGE = "assets/misc/lobby/sol/chemin.png";
+
+/* Texture de contour, à superposer sur chaque tuile de chemin/allée pour
+   dessiner une bordure tout autour du réseau de chemins. Même logique de
+   chemin que les autres : résolu en JS via style.backgroundImage, donc
+   relatif à lobby.html. */
+const CONTOUR_IMAGE = "assets/misc/lobby/sol/contour.png";
+
 /* Décorations en image (au lieu d'un simple emoji). Même principe : chemin
    résolu relativement à lobby.html. */
 const DECO_IMAGE_BASE = "assets/misc/lobby/deco/";
 const DECO_IMAGES = {
   slot: "slot-deco.png",
   plant: "plant-deco.png",
+};
+
+/* Panneau décoratif posé au pied de certains bâtiments, à gauche ou à
+   droite selon la maison. Même logique de chemin que les autres images :
+   résolu en JS via style.backgroundImage, donc relatif à lobby.html. */
+const SIGN_IMAGE = "assets/misc/lobby/deco/panneau.png";
+const SIGN_SIDE = {
+  blackjack: "left",
+  roulette: "left",
+  arcade: "left",
+  baccara: "left",
+  poker: "right",
+  slots: "right",
+  "future-right": "right",
+  "future-bottom-2": "right",
 };
 
 function buildGrid(width, height) {
@@ -238,20 +265,40 @@ for (let y = 0; y < HEIGHT; y++) {
       const dx = x - place.x;
       const dy = y - place.y;
       div.classList.add('has-image');
-      div.style.backgroundImage = `url("${HOUSE_IMAGE_BASE}${houseImg}")`;
-      div.style.backgroundSize = `${place.width * TILE}px ${2 * TILE}px`;
-      div.style.backgroundPosition = `${-dx * TILE}px ${-dy * TILE}px`;
+      // Deux couches : l'image du bâtiment par-dessus, le tapis rouge en dessous
+      // (visible partout où l'image du bâtiment est transparente ou ne couvre pas la case).
+      div.style.backgroundImage = `url("${HOUSE_IMAGE_BASE}${houseImg}"), url("${CARPET_IMAGE}")`;
+      div.style.backgroundSize = `${place.width * TILE}px ${2 * TILE}px, ${TILE}px ${TILE}px`;
+      div.style.backgroundPosition = `${-dx * TILE}px ${-dy * TILE}px, top left`;
+      div.style.backgroundRepeat = 'no-repeat, no-repeat';
     }
 
-    if (type.kind === "door") {
+    if (type.kind === "wall") {
+      div.classList.add('has-image');
+      div.style.backgroundImage = `url("${CONTOUR_IMAGE}")`;
+      div.style.backgroundSize = `${TILE}px ${TILE}px`;
+    } else if (type.kind === "door") {
       const iconHtml = houseImg ? '' : `<span class="icon">${type.icon}</span>`;
       div.innerHTML = `<span class="label">${type.label}</span>${iconHtml}`;
+      if (houseImg) {
+        // dy = nombre de tuiles au-dessus de la porte DANS ce bâtiment précis
+        // (1 pour une maison classique toit+porte, 0 pour le bar dont la porte
+        // est déjà sur la rangée du haut). On remonte le label d'exactement
+        // ce qu'il faut pour dégager tout le bâtiment, jamais plus.
+        const dy = y - place.y;
+        const label = div.querySelector('.label');
+        label.style.top = `calc(-1 * ${dy} * var(--tile-size) - 26px)`;
+      }
     } else if (type.kind === "roof") {
       const centerX = place.x + Math.floor(place.width / 2);
       div.innerHTML = (!houseImg && x === centerX) ? `<span class="icon">${type.icon}</span>` : '';
     } else if (type.kind === "floor") {
       div.classList.add('has-image');
       div.style.backgroundImage = `url("${CARPET_IMAGE}")`;
+      div.style.backgroundSize = `${TILE}px ${TILE}px`;
+    } else if (type.kind === "carpet") {
+      div.classList.add('has-image');
+      div.style.backgroundImage = `url("${PATH_IMAGE}")`;
       div.style.backgroundSize = `${TILE}px ${TILE}px`;
     } else if (type.kind === "deco") {
       if (type.image) {
@@ -271,6 +318,23 @@ for (let y = 0; y < HEIGHT; y++) {
     mapEl.appendChild(div);
   }
 }
+
+/* ---------- Panneaux décoratifs au pied des bâtiments ---------- */
+ALL_HOUSES.forEach(house => {
+  const side = SIGN_SIDE[house.key];
+  if (!side) return;
+  // Rangée du bas du bâtiment (façade/porte) : y du toit + 1, sauf pour le
+  // bar dont la disposition est inversée (porte en haut) — non concerné ici.
+  const bottomRowY = house.y + 1;
+  const cornerX = side === "left" ? house.x : house.x + house.width - 1;
+
+  const sign = document.createElement('div');
+  sign.className = `building-sign sign-${side}`;
+  sign.style.left = `${cornerX * TILE}px`;
+  sign.style.top = `${bottomRowY * TILE}px`;
+  sign.style.backgroundImage = `url("${SIGN_IMAGE}")`;
+  mapEl.appendChild(sign);
+});
 
 
 /* ---------- État du joueur ---------- */
