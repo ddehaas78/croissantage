@@ -264,18 +264,20 @@
   overflow-y:auto;
 }
 .cd-win-chip{
-  background: var(--panel-light);
-  border:1px solid var(--gold-dim);
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  border:2px solid var(--gold);
   border-radius:999px;
   padding:4px 10px;
   font-size:.68rem;
   color: var(--cream);
   white-space:nowrap;
+  box-shadow: 0 4px 10px rgba(0,0,0,.4), 0 0 12px rgba(212,175,55,.2);
 }
 .cd-win-chip strong{ color: var(--gold-bright); }
 .cd-win-chip.cd-win-total{
   border-color: var(--gold-bright);
-  background: linear-gradient(160deg, var(--panel-light), var(--panel));
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  box-shadow: 0 4px 10px rgba(0,0,0,.4), 0 0 16px rgba(212,175,55,.3);
 }
 
 /* ---------- Gamble ---------- */
@@ -288,8 +290,9 @@
   gap:10px;
   padding:14px;
   border-radius:14px;
-  border:1px solid var(--gold-dim);
-  background: var(--panel);
+  border:2px solid var(--gold);
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  box-shadow: 0 14px 30px rgba(0,0,0,.5), 0 0 30px rgba(212,175,55,.25);
 }
 .cd-gamble-panel[hidden]{
   display:none;
@@ -367,8 +370,9 @@
   flex-wrap:wrap;
   padding:12px 18px;
   border-radius:14px;
-  border:1px solid var(--gold-dim);
-  background: var(--panel);
+  border:2px solid var(--gold);
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  box-shadow: 0 14px 30px rgba(0,0,0,.5), 0 0 30px rgba(212,175,55,.25);
 }
 
 .cd-control{

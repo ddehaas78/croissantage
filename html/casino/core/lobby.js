@@ -261,7 +261,13 @@ function fitLobbyToViewport() {
   const availW = window.innerWidth - VIEWPORT_MARGIN * 2;
   const availH = window.innerHeight - VIEWPORT_MARGIN * 2;
   lobbyScale = Math.min(1, availW / mapW, availH / mapH);
-  tilesetEl.style.transform = `translateY(-50%) scale(${lobbyScale})`;
+  // On force chaque tuile à occuper un nombre ENTIER de pixels une fois
+  // zoomée : sinon, sur une grande map, les arrondis dérivent ligne après
+  // ligne et finissent par créer une fine ligne visible à un endroit précis.
+  const scaledTile = Math.floor(TILE * lobbyScale);
+  if (scaledTile > 0) lobbyScale = scaledTile / TILE;
+  tilesetEl.style.zoom = lobbyScale;
+  tilesetEl.style.transform = `translateY(-50%)`;
 }
 fitLobbyToViewport();
 window.addEventListener('resize', fitLobbyToViewport);

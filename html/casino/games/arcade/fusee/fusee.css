@@ -82,8 +82,8 @@
   z-index: 5;
 }
 .fs-y-axis span {
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid var(--gold-dim);
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  border: 2px solid var(--gold);
   padding: 3px 8px;
   border-radius: 6px;
   font-family: var(--font-body);
@@ -168,10 +168,11 @@
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  background: linear-gradient(160deg, var(--panel-light), var(--panel));
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  border: 2px solid var(--gold);
   border-radius: 16px;
   padding: 20px 16px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(212, 175, 55, 0.25);
 }
 
 .fs-total-bet {

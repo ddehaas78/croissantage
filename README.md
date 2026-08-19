@@ -163,6 +163,19 @@ main** : il suffit de placer la balise avec les bons attributs :
 <script src="../../core/topbar.js"></script>
 ```
 
+⚠️ `data-back` n'est **pas déduit automatiquement** de l'arborescence : pour un
+jeu classique le défaut convient (`../../lobby.html`), mais pour un **sous-jeu
+d'un hub** (ex. `games/arcade/fusee/`), il faut explicitement mettre
+`data-back="../arcade.html"` pour revenir au menu du hub plutôt qu'au lobby.
+Penser à le faire sur **chaque** sous-jeu du hub (fusée, mines, chicken...),
+pas seulement le premier créé.
+
+Le style visuel du bandeau (fond dégradé marron `#3a1608`→`#1c0a04`, bordure
+`var(--gold)`, glow doré, titre en `var(--gold-bright)`) est défini dans
+`core/game-page.css` (`.game-topbar`, `.game-title`, `.topbar-balance`) — voir
+section 7. Comme `topbar.js` et `game-page.css` sont communs à tous les jeux,
+changer ce style à un seul endroit le répercute automatiquement partout.
+
 ---
 
 ## 4. Anatomie d'un jeu — exemple de référence : Roulette
@@ -506,6 +519,13 @@ Classes utilitaires prêtes à l'emploi : `.btn` + `.btn-primary` / `.btn-ghost`
 Le lobby (`core/lobby.css`) utilise volontairement une **autre** police
 ("Press Start 2P") et sa propre palette bordeaux/or en pixel art — ne pas
 mélanger les deux styles entre le village et les pages de jeu.
+
+**Bandeau du haut (`.game-topbar`, dans `core/game-page.css`)** : reprend le
+même style que la popup de confirmation dorée (`.cd-confirm-box` dans
+`columbus.css`) — fond dégradé marron `linear-gradient(160deg, #3a1608,
+#1c0a04)`, bordure `2px solid var(--gold)`, glow doré (`box-shadow`), titre en
+`var(--gold-bright)`. Commun à **tous** les jeux via `game-page.css` : pas
+besoin (ni recommandé) de le redéfinir dans le CSS d'un jeu particulier.
 
 ---
 

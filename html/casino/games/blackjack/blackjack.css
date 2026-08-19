@@ -55,14 +55,15 @@
 
 .bj-score {
   font-family: var(--font-body);
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid var(--gold-dim);
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  border: 2px solid var(--gold);
   padding: 2px 10px;
   border-radius: 999px;
   font-size: 0.78rem;
   color: var(--cream);
   letter-spacing: normal;
   text-transform: none;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.2);
 }
 
 .bj-center {
@@ -195,10 +196,11 @@
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  background: linear-gradient(160deg, var(--panel-light), var(--panel));
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  border: 2px solid var(--gold);
   border-radius: 16px;
   padding: 20px 16px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(212, 175, 55, 0.25);
 }
 
 .bj-total-bet {
@@ -310,7 +312,7 @@
 }
 .bj-hist-win { background: var(--emerald); }
 .bj-hist-bj { background: linear-gradient(160deg, var(--gold-bright), var(--gold)); color: #241a08; }
-.bj-hist-push { background: var(--panel-light); }
+.bj-hist-push { background: linear-gradient(160deg, #3a1608, #1c0a04); border-color: var(--gold); }
 .bj-hist-loss { background: #b3212f; }
 
 /* ---------- Responsive ---------- */

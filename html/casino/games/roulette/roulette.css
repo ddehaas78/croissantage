@@ -145,10 +145,11 @@
   justify-content:center;
   gap:22px;
   flex-wrap:wrap;
-  background: var(--panel);
-  border: 1px solid var(--gold-dim);
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  border: 2px solid var(--gold);
   border-radius: 14px;
   padding: 12px 20px;
+  box-shadow: 0 14px 30px rgba(0,0,0,.5), 0 0 30px rgba(212,175,55,.25);
 }
 
 .rl-message{
