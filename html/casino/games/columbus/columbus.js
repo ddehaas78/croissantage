@@ -37,7 +37,7 @@ const Columbus = (() => {
   const SYMBOL_WEIGHTS = [
     ['WILD', 2], ['QUEEN', 3], ['NECKLACE', 4], ['SEXTANT', 5],
     ['CARD_A', 7], ['CARD_K', 7], ['CARD_Q', 7], ['CARD_J', 8], ['CARD_10', 8],
-    ['SCATTER', 10],
+    ['SCATTER', 3],
   ];
 
   const LINES_COUNT = 10; // Toutes les lignes sont désormais actives en permanence
