@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Poppins:wght@400;500;600;700&display=swap');
 
 :root{
-  --black: #0b0906;
+  --black: #3a1608;
   --near-black: #14100b;
   --panel: #1c1712;
   --panel-light: #2a221a;
@@ -34,7 +34,7 @@ html,body{
 body{
   background:
     radial-gradient(circle at 50% -10%, rgba(212,175,55,.08), transparent 55%),
-    var(--black);
+    linear-gradient(160deg, #3a0e08, #1c0a04);
 }
 
 .hidden{ display:none !important; }
