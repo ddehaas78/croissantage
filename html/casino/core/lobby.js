@@ -301,7 +301,16 @@ for (let y = 0; y < HEIGHT; y++) {
       div.style.backgroundSize = `${TILE}px ${TILE}px`;
     } else if (type.kind === "door") {
       const iconHtml = houseImg ? '' : `<span class="icon">${type.icon}</span>`;
-      div.innerHTML = iconHtml;
+      div.innerHTML = `<span class="label">${type.label}</span>${iconHtml}`;
+      if (houseImg) {
+        // dy = nombre de tuiles au-dessus de la porte DANS ce bâtiment précis
+        // (1 pour une maison classique toit+porte, 0 pour le bar dont la porte
+        // est déjà sur la rangée du haut). On remonte le label d'exactement
+        // ce qu'il faut pour dégager tout le bâtiment, jamais plus.
+        const dy = y - place.y;
+        const label = div.querySelector('.label');
+        label.style.top = `calc(-1 * ${dy} * var(--tile-size) - 26px)`;
+      }
     } else if (type.kind === "roof") {
       const centerX = place.x + Math.floor(place.width / 2);
       div.innerHTML = (!houseImg && x === centerX) ? `<span class="icon">${type.icon}</span>` : '';
