@@ -57,7 +57,8 @@ Deux ambiances visuelles cohabitent volontairement :
     │   │   fusee.css
     │   │   fusee.js
     │   ├── mines/
-    │   └── craps/
+    │   ├── craps/
+    │   └── plinko/
     └── <jeu>/                → un dossier par jeu (baccara, bar, blackjack, columbus, poker, roulette, ...)
             <jeu>.html
             <jeu>.css
@@ -486,13 +487,72 @@ plutôt qu'un plateau de jeu :
 
 ### 6.2 Les sous-jeux (`games/arcade/<jeu>/`)
 
-Chaque mini-jeu (`fusee`, `mines`, `craps`...) est un jeu **classique** au
+Chaque mini-jeu (`fusee`, `mines`, `craps`, `plinko`...) est un jeu **classique** au
 sens de la section 4, avec son propre trio `<jeu>.html`/`<jeu>.css`/`<jeu>.js`
 et son propre IIFE — la seule différence est la profondeur de chemin (voir
 section 2 : `../../../` au lieu de `../../`, puisqu'on est un niveau plus bas
 que `games/<jeu>/`). Une fois qu'un sous-jeu est prêt, il suffit de passer son
 `ready` à `true` dans le tableau d'`arcade.js` pour le débloquer dans le
 carrousel.
+
+### 6.3 Jeux à `<canvas>` et boucle physique — exemple de référence : Plinko
+
+`games/arcade/plinko/` est le premier jeu qui ne se résout pas en un seul
+clic : une balle tombe image par image dans un `<canvas>`, avec gravité et
+rebonds sur des chevilles, jusqu'à atterrir dans un bac. Ce pattern diffère
+assez du modèle "jeu de table" (section 4) pour mériter sa propre fiche.
+
+**Structure générale** (`plinko.js`) :
+- Le plateau (chevilles + bacs) est **recalculé géométriquement** à partir de
+  quelques constantes (`WIDTH`, `HEIGHT`, `PADDING_X`, `PADDING_TOP`,
+  `PADDING_BOTTOM`) plutôt que positionné en dur — indispensable dès qu'un
+  réglage (nombre de lignes, difficulté) doit reconstruire le plateau à la
+  volée (`rebuildBoard()`).
+- Une boucle physique unique (`loop()` + `requestAnimationFrame`, démarrée par
+  `ensureLoop()` et jamais arrêtée) met à jour toutes les balles en vol à
+  chaque frame, teste leurs collisions avec les chevilles, puis détecte
+  l'atterrissage dans un bac.
+- Les bacs/multiplicateurs sont rendus en **HTML classique** juste sous le
+  canvas (pas dessinés dedans) : plus simple à animer (flash au bon bac) et à
+  thémer avec les variables CSS habituelles, plutôt que de gérer du texte en
+  `<canvas>`.
+- Mise : boutons à montant fixe (10/20/50/100/200) — cliquer lance
+  **immédiatement** une balle (spam-clickable, plafonné par
+  `MAX_ACTIVE_BALLS`), au lieu du couple "choisir un montant puis valider"
+  des jeux de table.
+
+**Pièges rencontrés à surveiller sur tout futur jeu du même genre** :
+
+- **Marge de spawn au-dessus du plateau** : si l'objet qui tombe apparaît
+  trop près de la première rangée d'obstacles, il la percute quasiment sans
+  vitesse acquise (gravité pas encore appliquée) et reste "collé" au lieu de
+  tomber franchement. Calculer la position de départ à partir de la taille
+  réelle de l'objet (`freeFallClearance` dans `plinko.js`), pas une valeur
+  fixe — surtout si cette taille dépend elle-même d'un réglage (voir point
+  suivant).
+- **Taille d'un objet qui dépend d'un réglage variable (nombre de lignes,
+  difficulté...)** : ne pas la définir comme un simple multiple d'une autre
+  grandeur (ex. `rayonChevilleᵃᶜᵗᵘᵉˡ × 2`), car le ratio par rapport à
+  l'espace disponible (l'écart entre chevilles) peut dériver d'un réglage à
+  l'autre — l'objet devient proportionnellement trop gros à certains réglages
+  et se coince entre les obstacles. Fixer plutôt son rayon comme un
+  **pourcentage constant de l'écart disponible**, mesuré sur le réglage de
+  référence qui "tombe" bien (voir `ballToGapRatio()` dans `plinko.js`), puis
+  appliquer ce même pourcentage à tous les réglages.
+- **Historique/log qui s'affiche au fil du jeu** (ici les derniers gains,
+  `.pk-log`) : lui donner une **grille à taille fixe** (colonnes × lignes
+  définies en CSS, hauteur figée) et retirer la plus ancienne entrée dès que
+  la limite est dépassée, plutôt que de laisser le conteneur grandir avec le
+  contenu — sinon la page se redimensionne légèrement à chaque nouvelle
+  entrée.
+- **Collisions balle/obstacle** : une reprojection complète de la vitesse sur
+  l'angle de collision à chaque frame de contact peut donner un rebond très
+  franc mais aussi un ralentissement artificiel quand la balle frôle un
+  obstacle en angle (elle reste "en collision" plusieurs frames de suite). Une
+  décomposition normale/tangentielle de la vitesse est plus fidèle physiquement
+  mais peut aussi donner l'impression que la balle va trop vite selon le
+  facteur de rebond choisi — à retester en jeu à chaque changement, ce
+  réglage est sensible et se juge à l'œil plus qu'au calcul.
 
 ---
 

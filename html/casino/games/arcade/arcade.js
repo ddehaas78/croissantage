@@ -1,12 +1,15 @@
 /* arcade.js — Hub Arcade
-   Menu carrousel façon "chaînes Wii" : les jeux solo défilent en arc, celui
-   du centre est le jeu sélectionné, on peut naviguer au clic sur une
+   Menu façon "chaîne Wii" (Disc Channel) : les jeux solo sont disposés en
+   éventail (comme des cartes tenues en main, pivot sous le plateau), la
+   pochette du centre est le jeu sélectionné. Navigation au clic sur une
    vignette latérale, aux flèches, au clavier ou en glissant (swipe).
 
    Chaque entrée de GAMES pointe vers son propre dossier
    games/arcade/<jeu>/<jeu>.html (trois niveaux sous la racine, donc ../../../
    depuis là-bas). Tant que `ready` est false, on n'y navigue pas : on
-   affiche juste un message "bientôt disponible" (voir README section 4.4).
+   Cliquer sur la pochette centrale (déjà sélectionnée) lance le jeu ; si
+   elle est verrouillée (`ready` false), une info-bulle "bientôt
+   disponible" apparaît au-dessus au lieu de naviguer.
 
    Animation : on utilise une position "virtuelle" non bornée (`center`,
    `virtualPos`) plutôt qu'un simple index 0..N-1. Chaque vignette DOM garde
@@ -43,6 +46,14 @@ const Arcade = (() => {
       ready: true,
     },
     {
+      id: 'plinko',
+      name: 'Plinko',
+      icon: '🔴',
+      tagline: 'Lâchez la balle, laissez la physique décider.',
+      href: './plinko/plinko.html',
+      ready: true,
+    },
+    {
       id: 'craps',
       name: 'Craps',
       icon: '🎲',
@@ -52,25 +63,27 @@ const Arcade = (() => {
     },
   ];
 
-  const VISIBLE_RANGE = 2; // vignettes rendues de -2 à +2 autour du centre
-  const TRANSITION = 'transform 0.45s cubic-bezier(.2, .8, .2, 1), opacity 0.45s ease';
-  const REMOVE_DELAY = 460; // légèrement > durée de la transition
+  const VISIBLE_RANGE = 3; // vignettes rendues de -3 à +3 autour du centre
+  const TRANSITION = 'transform 0.5s cubic-bezier(.22, .85, .28, 1), opacity 0.5s ease';
+  const REMOVE_DELAY = 510; // légèrement > durée de la transition
 
-  // Paramètres visuels indexés par |décalage| (0 à 3 : 3 = juste hors champ,
-  // utilisé comme point de départ/arrivée invisible pour les entrées/sorties).
+  // Géométrie de l'éventail, indexée par |décalage| (0 à 4 : 4 = juste hors
+  // champ, utilisé comme point de départ/arrivée invisible pour les
+  // entrées/sorties). Rotation en 2D (pas de perspective 3D) pour l'effet
+  // "cartes tenues en main", pivot sous le plateau (voir transform-origin
+  // en CSS sur .ac-slot).
   const STEP = {
-    x: [0, 165, 300, 420],
-    y: [0, 12, 34, 60],
-    scale: [1, 0.72, 0.5, 0.32],
-    rotate: [0, 24, 34, 40],
-    opacity: [1, 0.62, 0.32, 0],
-    z: [4, 2, 1, 0],
+    x: [0, 190, 350, 470, 570],
+    y: [0, 22, 55, 96, 148],
+    scale: [1, 0.86, 0.7, 0.55, 0.4],
+    rotate: [0, 14, 26, 36, 44],
+    opacity: [1, 1, 0.85, 0.5, 0],
   };
 
   let built = false;
   let center = 0; // position virtuelle du jeu sélectionné (peut dépasser 0..N-1)
   const slotEls = new Map(); // position virtuelle -> élément DOM
-  let track, dotsEl, infoIcon, infoName, infoTagline, playBtn, flashTimer;
+  let track, infoTagline, playTooltip, counterEl, tooltipTimer;
 
   function mod(n, m) {
     return ((n % m) + m) % m;
@@ -81,7 +94,7 @@ const Arcade = (() => {
   }
 
   function styleForOffset(offset) {
-    const clamped = Math.max(-3, Math.min(3, offset));
+    const clamped = Math.max(-4, Math.min(4, offset));
     const abs = Math.abs(clamped);
     const sign = Math.sign(clamped);
     return {
@@ -90,18 +103,36 @@ const Arcade = (() => {
       scale: STEP.scale[abs],
       rotate: sign * STEP.rotate[abs],
       opacity: STEP.opacity[abs],
-      z: STEP.z[abs],
+      // z-index dérivé de la distance au centre, avec un pas assez large
+      // (x10) pour ne jamais être à égalité avec un décalage d'entrée/sortie
+      // voisin, PLUS un léger bonus pour le côté gauche (sign<0) afin que
+      // deux cartes symétriques (ex: -1 et +1) ne soient jamais ex æquo :
+      // sans ce départage, l'ordre de superposition dépendait de l'ordre
+      // d'insertion dans le DOM et pouvait sembler incohérent/instable.
+      z: (100 - abs * 10) + (sign < 0 ? 1 : 0),
     };
   }
 
   function applyStyle(el, offset, animated) {
     const s = styleForOffset(offset);
     el.style.transition = animated ? TRANSITION : 'none';
-    el.style.transform = `translate(-50%, -50%) translate(${s.x}px, ${s.y}px) scale(${s.scale}) rotateY(${s.rotate}deg)`;
+    el.style.transform = `translate(-50%, -50%) translate(${s.x}px, ${s.y}px) scale(${s.scale}) rotate(${s.rotate}deg)`;
     el.style.opacity = String(s.opacity);
     el.style.zIndex = String(s.z);
     el.classList.toggle('ac-slot-active', offset === 0);
     el.setAttribute('aria-current', offset === 0 ? 'true' : 'false');
+    if (offset === 0) {
+      const game = GAMES[mod(center, GAMES.length)];
+      el.setAttribute('aria-label', game.ready ? `Jouer à ${game.name}` : `${game.name} bientôt disponible`);
+    }
+  }
+
+  function coverFaceHTML(game, { withLock } = {}) {
+    return `
+      <span class="ac-slot-icon">${game.icon}</span>
+      <span class="ac-slot-name">${game.name}</span>
+      ${withLock && !game.ready ? '<span class="ac-slot-lock">Bientôt</span>' : ''}
+    `;
   }
 
   function makeSlotEl(virtualPos) {
@@ -110,11 +141,7 @@ const Arcade = (() => {
     el.type = 'button';
     el.className = 'ac-slot';
     el.setAttribute('aria-label', game.name);
-    el.innerHTML = `
-      <span class="ac-slot-icon">${game.icon}</span>
-      <span class="ac-slot-name">${game.name}</span>
-      ${!game.ready ? '<span class="ac-slot-lock">Bientôt</span>' : ''}
-    `;
+    el.innerHTML = `<div class="ac-cover-face">${coverFaceHTML(game, { withLock: true })}</div>`;
     el.addEventListener('click', () => {
       const offset = virtualPos - center;
       if (offset === 0) playCurrent();
@@ -126,17 +153,11 @@ const Arcade = (() => {
 
   function updateInfo() {
     const current = currentGame();
-    infoIcon.textContent = current.icon;
-    infoName.textContent = current.name;
     infoTagline.textContent = current.tagline;
-    playBtn.textContent = current.ready ? 'Jouer' : 'Bientôt disponible';
-    playBtn.classList.remove('ac-play-btn-flash');
-    playBtn.classList.toggle('ac-play-btn-locked', !current.ready);
+    playTooltip.classList.remove('ac-show');
 
     const gi = mod(center, GAMES.length);
-    dotsEl.querySelectorAll('.ac-dot').forEach((d, i) => {
-      d.classList.toggle('active', i === gi);
-    });
+    counterEl.textContent = `${gi + 1} / ${GAMES.length}`;
   }
 
   // Déplace les vignettes existantes vers leur nouvelle position, fait
@@ -146,25 +167,20 @@ const Arcade = (() => {
     const needed = new Set();
     for (let o = -VISIBLE_RANGE; o <= VISIBLE_RANGE; o++) needed.add(center + o);
 
-    // Les vignettes déjà présentes glissent vers leur nouveau décalage.
     slotEls.forEach((el, pos) => {
       applyStyle(el, pos - center, true);
     });
 
-    // Nouvelles vignettes : elles apparaissent au bord (décalage ±3, cachées)
-    // puis glissent vers leur vraie place.
     needed.forEach((pos) => {
       if (slotEls.has(pos)) return;
       const el = makeSlotEl(pos);
       const enterFrom = Math.sign(pos - prevCenter) * (VISIBLE_RANGE + 1);
       applyStyle(el, enterFrom, false);
-      void el.offsetWidth; // force le reflow pour que le "from" soit bien appliqué avant l'animation
+      void el.offsetWidth;
       applyStyle(el, pos - center, true);
       slotEls.set(pos, el);
     });
 
-    // Vignettes qui sortent de la fenêtre : elles ont déjà leur transform
-    // de sortie (via la boucle du dessus), on les retire une fois glissées.
     slotEls.forEach((el, pos) => {
       if (needed.has(pos)) return;
       setTimeout(() => {
@@ -181,17 +197,17 @@ const Arcade = (() => {
     updateInfo();
   }
 
-  function flashMessage(msg) {
-    clearTimeout(flashTimer);
-    playBtn.textContent = msg;
-    playBtn.classList.add('ac-play-btn-flash');
-    flashTimer = setTimeout(updateInfo, 1400);
+  function flashLocked(msg) {
+    clearTimeout(tooltipTimer);
+    playTooltip.textContent = msg;
+    playTooltip.classList.add('ac-show');
+    tooltipTimer = setTimeout(() => playTooltip.classList.remove('ac-show'), 1600);
   }
 
   function playCurrent() {
     const game = currentGame();
     if (!game.ready) {
-      flashMessage(`${game.name} arrive bientôt 🔧`);
+      flashLocked(`${game.name} arrive bientôt 🔧`);
       return;
     }
     window.location.href = game.href;
@@ -200,7 +216,6 @@ const Arcade = (() => {
   function bindEvents(container) {
     container.querySelector('.ac-nav-prev').addEventListener('click', () => go(-1));
     container.querySelector('.ac-nav-next').addEventListener('click', () => go(1));
-    playBtn.addEventListener('click', playCurrent);
 
     const carousel = container.querySelector('.ac-carousel');
     carousel.addEventListener('keydown', (e) => {
@@ -212,25 +227,36 @@ const Arcade = (() => {
       }
     });
 
-    // Glisser / swipe à la souris ou au doigt pour changer de jeu.
     const stage = container.querySelector('.ac-stage');
-    let dragging = false;
-    let startX = 0;
+    const DRAG_THRESHOLD = 10;
+    let pointerDownX = null;
+    let dragStarted = false;
 
     stage.addEventListener('pointerdown', (e) => {
-      dragging = true;
-      startX = e.clientX;
-      stage.setPointerCapture(e.pointerId);
+      pointerDownX = e.clientX;
+      dragStarted = false;
+    });
+    stage.addEventListener('pointermove', (e) => {
+      if (pointerDownX === null || dragStarted) return;
+      if (Math.abs(e.clientX - pointerDownX) > DRAG_THRESHOLD) {
+        dragStarted = true;
+        stage.setPointerCapture(e.pointerId);
+      }
     });
     stage.addEventListener('pointerup', (e) => {
-      if (!dragging) return;
-      dragging = false;
-      const dx = e.clientX - startX;
-      if (dx > 40) go(-1);
-      else if (dx < -40) go(1);
+      if (pointerDownX === null) return;
+      const dx = e.clientX - pointerDownX;
+      if (dragStarted) {
+        if (dx > 40) go(-1);
+        else if (dx < -40) go(1);
+        if (stage.hasPointerCapture(e.pointerId)) stage.releasePointerCapture(e.pointerId);
+      }
+      pointerDownX = null;
+      dragStarted = false;
     });
     stage.addEventListener('pointercancel', () => {
-      dragging = false;
+      pointerDownX = null;
+      dragStarted = false;
     });
   }
 
@@ -241,36 +267,33 @@ const Arcade = (() => {
 
     container.innerHTML = `
       <div class="ac-wrap">
-        <div class="ac-carousel" tabindex="0">
-          <button type="button" class="ac-nav ac-nav-prev" aria-label="Jeu précédent">‹</button>
-          <div class="ac-stage"><div class="ac-track"></div></div>
-          <button type="button" class="ac-nav ac-nav-next" aria-label="Jeu suivant">›</button>
+        <div class="ac-frame">
+          <div class="ac-carousel" tabindex="0">
+            <button type="button" class="ac-nav ac-nav-prev" aria-label="Jeu précédent">‹</button>
+            <div class="ac-stage">
+              <div class="ac-track"></div>
+              <div class="ac-play-tooltip" id="ac-play-tooltip"></div>
+            </div>
+            <button type="button" class="ac-nav ac-nav-next" aria-label="Jeu suivant">›</button>
+          </div>
         </div>
 
-        <div class="ac-info">
-          <div class="ac-info-icon" id="ac-info-icon"></div>
-          <h2 class="ac-info-name" id="ac-info-name"></h2>
-          <p class="ac-info-tagline" id="ac-info-tagline"></p>
-          <button type="button" class="btn btn-primary ac-play-btn" id="ac-play-btn">Jouer</button>
-        </div>
-
-        <div class="ac-dots" id="ac-dots">
-          ${GAMES.map(() => '<span class="ac-dot"></span>').join('')}
+        <div class="ac-info-bar">
+          <div class="ac-info-main">
+            <span class="ac-counter" id="ac-counter"></span>
+            <p class="ac-info-tagline" id="ac-info-tagline"></p>
+          </div>
         </div>
       </div>
     `;
 
     track = container.querySelector('.ac-track');
-    dotsEl = container.querySelector('#ac-dots');
-    infoIcon = container.querySelector('#ac-info-icon');
-    infoName = container.querySelector('#ac-info-name');
     infoTagline = container.querySelector('#ac-info-tagline');
-    playBtn = container.querySelector('#ac-play-btn');
+    playTooltip = container.querySelector('#ac-play-tooltip');
+    counterEl = container.querySelector('#ac-counter');
 
     bindEvents(container);
 
-    // Rendu initial : les 5 vignettes posées directement à leur place, sans
-    // animation d'entrée (on ne veut pas de glissement au chargement).
     for (let o = -VISIBLE_RANGE; o <= VISIBLE_RANGE; o++) {
       const pos = center + o;
       const el = makeSlotEl(pos);

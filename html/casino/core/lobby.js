@@ -473,6 +473,8 @@ function stopAllMovement() {
   control.moving = "idle";
   instantStop();
   if (followUpdate) { clearInterval(followUpdate); followUpdate = null; pathFind.clearPath(); }
+  activePath = null;
+  pathGeneration++;
 }
 
 function setMove(direction) {
@@ -530,11 +532,34 @@ function move() {
   if (next.effect) next.effect();
 
   control.lastMoving = control.moving;
+
+  // Si on suit un chemin (clic), on efface le carré de la case qu'on vient
+  // d'atteindre. On le fait ici, au moment réel de l'arrivée logique sur la
+  // case, plutôt que via un minuteur séparé qui pouvait se désynchroniser
+  // (carré effacé trop tôt, ou raté pour la première case du trajet).
+  if (activePath && activePath.index < activePath.cords.length) {
+    const cord = activePath.cords[activePath.index];
+    if (cord.x === currPos.x && cord.y === currPos.y) {
+      const stepIndex = activePath.index;
+      const p = activePath.path;
+      const gen = pathGeneration;
+      // On laisse le temps à la transition CSS de rattraper visuellement
+      // cette position avant de retirer le carré. On vérifie aussi que la
+      // "génération" du trajet n'a pas changé entre-temps (nouveau clic
+      // pendant le trajet) : sinon ce hideStep périmé pourrait cacher un
+      // carré du NOUVEAU trajet, puisque les cases (divs) sont réutilisées
+      // entre trajets successifs.
+      setTimeout(() => {
+        if (gen === pathGeneration) pathFind.hideStep(p, stepIndex);
+      }, delay);
+      activePath.index++;
+    }
+  }
 }
 
 /* ---------- Clavier ---------- */
 window.addEventListener('keydown', (e) => {
-  if (followUpdate != null) { clearInterval(followUpdate); followUpdate = null; pathFind.clearPath(); }
+  if (followUpdate != null) { clearInterval(followUpdate); followUpdate = null; pathFind.clearPath(); activePath = null; pathGeneration++; }
   const k = e.key.toLowerCase();
   if (k === 'w' || k === 'z' || k === 'arrowup') setMove('up');
   else if (k === 'd' || k === 'arrowright') setMove('right');
@@ -621,23 +646,35 @@ class PathFind {
         for (const [dx, dy] of deltas) {
           const nx = x + dx, ny = y + dy;
           if (nx < 0 || ny < 0 || ny >= this.grid.length || nx >= this.grid[y].length) continue;
-          if (!this.#tileAt(nx, ny).collide) vertex.neighbors.push(this.getId({ x: nx, y: ny }));
+          const nTile = this.#tileAt(nx, ny);
+          if (!nTile.collide) {
+            // Coût du déplacement vers cette case : faible sur le réseau de
+            // chemins (chemin.png), plus élevé ailleurs (tapis de fond,
+            // seuils de porte...). Le perso reste donc sur le chemin quand
+            // c'est possible, tout en pouvant le quitter pour rejoindre une
+            // porte ou une case en dehors du réseau.
+            const weight = nTile.kind === "carpet" ? 1 : 5;
+            vertex.neighbors.push({ id: this.getId({ x: nx, y: ny }), weight });
+          }
         }
       }
     }
     return graph;
   }
   #dijkstra(start) {
-    const nodes = JSON.parse(JSON.stringify(this.graph));
+    // structuredClone (et non JSON.parse/stringify) : JSON ne sait pas
+    // représenter Infinity, il le transforme en null, ce qui cassait toutes
+    // les comparaisons de distance et empêchait de trouver le moindre chemin.
+    const nodes = structuredClone(this.graph);
     const queue = new PriorityQueue();
     const startId = this.getId(start);
     nodes[startId].distance = 0;
     queue.enqueue(startId, 0);
     while (!queue.isEmpty()) {
       const current = nodes[queue.dequeue().element];
-      for (const nId of current.neighbors) {
+      for (const { id: nId, weight } of current.neighbors) {
         const nVertex = nodes[nId];
-        const d = current.distance + 1;
+        const d = current.distance + weight;
         if (d < nVertex.distance) {
           nVertex.distance = d;
           nVertex.parent = current.id;
@@ -676,44 +713,78 @@ class PathFind {
       tile.style.display = 'block';
     }
   }
+  // Cache uniquement le carré correspondant à l'étape `i` du chemin (celle
+  // que le joueur vient d'atteindre), sans toucher aux autres carrés encore
+  // à parcourir.
+  hideStep(path, i) {
+    const tile = this.pathTiles[path.length - i];
+    if (tile) tile.style.display = 'none';
+  }
   clearPath() { this.pathTiles.forEach(t => t.style.display = 'none'); }
 }
 
 const pathFind = new PathFind(colliders, tileTypes);
 
 let followUpdate = null;
+// Trajet en cours de suivi (clic) : { path, cords, index }. L'effacement des
+// carrés se fait dans move(), au moment réel où le perso atteint chaque
+// case — pas ici, pour rester parfaitement synchronisé.
+let activePath = null;
+// Incrémenté à chaque nouveau trajet (clic) ou interruption : permet de
+// repérer et ignorer les hideStep programmés par un trajet précédent devenu
+// obsolète (voir move()).
+let pathGeneration = 0;
 function followPath(path) {
   if (path.length < 2) return;
   const cords = path.map(id => pathFind.getCord(id));
-  let i = 0;
+  pathGeneration++;
+  activePath = { path, cords, index: 1 };
   followUpdate = setInterval(() => {
-    i++;
-    if (i >= cords.length || transitioning) {
+    if (transitioning || !activePath) {
       clearInterval(followUpdate);
       followUpdate = null;
-      pathFind.clearPath();
       control.moving = "idle";
       return;
     }
-    const c = cords[i];
+    const idx = activePath.index;
+    if (idx >= cords.length) {
+      // Le trajet est terminé : la dernière case a déjà été atteinte et
+      // cachée dans move() (voir plus haut). On ne s'arrête qu'une fois
+      // que c'est réellement le cas, pour ne jamais couper le suivi avant
+      // que le dernier carré ait eu le temps d'être traité.
+      clearInterval(followUpdate);
+      followUpdate = null;
+      activePath = null;
+      control.moving = "idle";
+      return;
+    }
+    const c = cords[idx];
     if (c.x < currPos.x) setMove("left");
     else if (c.x > currPos.x) setMove("right");
     else if (c.y < currPos.y) setMove("up");
     else if (c.y > currPos.y) setMove("down");
-    pathFind.clearPath();
   }, delay);
 }
 
 document.getElementById('tileset').addEventListener('click', (e) => {
   if (transitioning) return;
   const rect = document.getElementById('tileset').getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left) / TILE);
-  const y = Math.floor((e.clientY - rect.top) / TILE);
+  // On mesure l'échelle réellement affichée à partir du rect lui-même
+  // (rect.width / taille réelle de la map en px), plutôt que de se fier à
+  // lobbyScale : selon les navigateurs, la propriété CSS "zoom" n'est pas
+  // toujours supportée (ex. Firefox), donc le rendu réel peut différer de
+  // ce que le JS pense avoir appliqué.
+  const scaleX = rect.width / (WIDTH * TILE);
+  const scaleY = rect.height / (HEIGHT * TILE);
+  const x = Math.floor((e.clientX - rect.left) / (TILE * scaleX));
+  const y = Math.floor((e.clientY - rect.top) / (TILE * scaleY));
   if (x < 0 || y < 0 || y >= HEIGHT || x >= WIDTH) return;
 
   if (followUpdate) { clearInterval(followUpdate); followUpdate = null; }
   control.moving = "idle";
   instantStop();
+  activePath = null;
+  pathGeneration++;
 
   const path = pathFind.getPath(currPos, { x, y });
   pathFind.drawPath(path);

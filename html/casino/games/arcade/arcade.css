@@ -1,33 +1,81 @@
-/* arcade.css — Hub Arcade : carrousel façon "Mii Channel"
-   Le menu affiche les jeux solo (fusée, mines, craps...) en arc, celui du
-   centre étant le jeu sélectionné. Préfixe de classes : ac-*
+/* arcade.css — Hub Arcade : recréation façon "chaîne Wii" (Disc Channel)
+   Un écran-cadre arrondi contient un éventail de pochettes (comme des
+   cartes tenues en main, pivot en dessous du plateau), une bannière de
+   titre sous l'éventail, un curseur "main" décoratif façon Wiimote, et un
+   bandeau du bas façon barre d'infos Wii (icône + nom à gauche, compteur
+   + bouton rond "Jouer" à droite). Palette 100% casino (or / bordeaux /
+   crème) — seule la mise en page/l'animation s'inspire du menu Wii.
+   Préfixe de classes : ac-*
 */
 
-.ac-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 28px;
-  padding: 40px 20px 60px;
-  max-width: 900px;
-  margin: 0 auto;
+/* Intégration avec game-page.css : .game-body a déjà flex:1 +
+   overflow-y:auto, mais ça ne prenait pas effet car son parent #arcade
+   n'est pas un conteneur flex (juste un <div> classique) — on comble ce
+   chaînon manquant ici, sans dupliquer/deviner de hauteur. On neutralise
+   aussi le padding et le scroll interne de .game-body pour cette page
+   précise : on veut un plein écran sans aucun scroll. */
+body {
+  overflow: hidden;
 }
 
+#arcade {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#arcade .game-body {
+  padding: 0;
+  overflow: hidden;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.ac-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 0 20px;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(212, 175, 55, 0.16), transparent 55%),
+    linear-gradient(180deg, rgba(58, 22, 8, 0.55), rgba(15, 6, 2, 0.85));
+  overflow: hidden;
+}
+
+/* ---------------- Écran plein cadre façon chaîne Wii ---------------- */
+.ac-frame {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 14px 4vw 10px;
+}
+
+/* ---------------- Carrousel / éventail ---------------- */
 .ac-carousel {
   position: relative;
   width: 100%;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   outline: none;
 }
 
 .ac-stage {
   position: relative;
-  width: 100%;
-  height: 260px;
-  perspective: 1100px;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 160px;
+  max-height: 480px;
   touch-action: pan-y;
 }
 
@@ -38,65 +86,86 @@
 
 .ac-slot {
   position: absolute;
-  top: 50%;
+  top: 20%;
   left: 50%;
-  width: 170px;
-  height: 200px;
-  border-radius: var(--radius);
+  width: min(21vw, 34dvh, 240px);
+  height: min(29vw, 46dvh, 330px);
+  cursor: pointer;
+  transition: transform 0.5s cubic-bezier(.22, .85, .28, 1), opacity 0.5s ease;
+  padding: 0;
+  border: none;
+  background: none;
+  transform-origin: 50% 115%;
+  isolation: isolate;
+}
+
+.ac-cover-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 9px;
   border: 2px solid var(--gold);
   background: linear-gradient(160deg, #3a1608, #1c0a04);
-  box-shadow: 0 14px 30px rgba(0,0,0,.5), 0 0 30px rgba(212,175,55,.25);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, .5), 0 0 22px rgba(212, 175, 55, .2);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  cursor: pointer;
-  transition: transform 0.45s cubic-bezier(.2, .8, .2, 1), opacity 0.45s ease, border-color 0.2s ease;
+  overflow: hidden;
   color: var(--cream);
   font-family: var(--font-body);
-  padding: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.ac-slot:hover {
-  border-color: var(--gold-bright);
+.ac-cover-face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.14) 0%, transparent 30%, transparent 70%, rgba(255, 255, 255, 0.05) 100%);
+  pointer-events: none;
 }
 
-.ac-slot-active {
+.ac-slot:hover .ac-cover-face {
   border-color: var(--gold-bright);
-  box-shadow: 0 0 0 3px rgba(245, 217, 140, 0.35), 0 14px 30px rgba(0,0,0,.5), 0 0 34px rgba(212,175,55,.35);
 }
 
 .ac-slot-icon {
-  font-size: 52px;
+  font-size: min(6vw, 64px);
   line-height: 1;
 }
 
 .ac-slot-name {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 16px;
+  font-size: min(1.6vw, 17px);
+  text-align: center;
+  padding: 0 8px;
 }
 
 .ac-slot-lock {
-  font-size: 11px;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
   color: var(--gold-dim);
-  background: rgba(0, 0, 0, 0.35);
-  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  padding: 2px 7px;
   border-radius: 999px;
 }
 
 .ac-nav {
-  background: var(--panel);
+  background: rgba(28, 10, 4, 0.55);
   border: 2px solid var(--gold-dim);
   color: var(--gold-bright);
-  font-size: 26px;
-  width: 44px;
-  height: 44px;
+  font-size: 22px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   cursor: pointer;
   z-index: 5;
   flex-shrink: 0;
+  backdrop-filter: blur(2px);
   transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
 }
 
@@ -106,78 +175,118 @@
   transform: scale(1.08);
 }
 
-.ac-info {
-  text-align: center;
+/* ---------------- Bandeau d'info du bas, façon barre Wii ---------------- */
+.ac-info-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  flex: 0 0 auto;
+  background: linear-gradient(160deg, rgba(58, 22, 8, 0.92), rgba(28, 10, 4, 0.92));
+  border-top: 1px solid rgba(212, 175, 55, 0.35);
+  padding: 14px 4vw;
+  box-shadow: 0 -10px 24px rgba(0, 0, 0, .35);
 }
 
-.ac-info-icon {
-  font-size: 34px;
+.ac-info-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-width: 0;
 }
 
-.ac-info-name {
+.ac-counter {
   font-family: var(--font-display);
-  color: var(--gold-bright);
-  margin: 6px 0 4px;
-  font-size: 26px;
+  color: var(--gold-dim);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .ac-info-tagline {
   color: var(--cream-dim);
-  margin-bottom: 16px;
+  margin: 0;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70vw;
+  text-align: center;
 }
 
-.ac-play-btn-locked {
-  opacity: 0.75;
-  cursor: not-allowed;
+.ac-play-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(15, 6, 2, 0.95);
+  border: 1px solid var(--gold-dim);
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+  z-index: 21;
 }
 
-.ac-play-btn-flash {
-  background: var(--burgundy-bright) !important;
-}
-
-.ac-dots {
-  display: flex;
-  gap: 8px;
-}
-
-.ac-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--gold-dim);
-  opacity: 0.5;
-  transition: opacity 0.2s ease, background 0.2s ease;
-}
-
-.ac-dot.active {
+.ac-play-tooltip.ac-show {
   opacity: 1;
-  background: var(--gold-bright);
+  transform: translateX(-50%) translateY(0);
+}
+
+@keyframes ac-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(245, 217, 140, 0.35), 0 16px 32px rgba(0, 0, 0, .55), 0 0 30px rgba(212, 175, 55, .38); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 217, 140, 0.18), 0 16px 32px rgba(0, 0, 0, .55), 0 0 40px rgba(212, 175, 55, .5); }
+}
+
+.ac-slot-active .ac-cover-face {
+  border-color: var(--gold-bright);
+  animation: ac-pulse 2.4s ease-in-out infinite;
 }
 
 @media (max-width: 860px) {
-  .ac-stage {
-    height: 220px;
-  }
   .ac-slot {
-    width: 140px;
-    height: 170px;
+    width: min(30vw, 190px);
+    height: min(41vw, 260px);
+  }
+  .ac-info-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+  }
+  .ac-info-tagline {
+    display: none;
   }
 }
 
 @media (max-width: 480px) {
+  .ac-frame {
+    padding: 14px 4vw 10px;
+  }
   .ac-stage {
-    height: 190px;
+    height: min(42vh, 300px);
+    min-height: 240px;
   }
   .ac-slot {
-    width: 120px;
-    height: 150px;
+    width: min(40vw, 150px);
+    height: min(55vw, 205px);
   }
   .ac-slot-icon {
-    font-size: 40px;
+    font-size: min(9vw, 46px);
+  }
+  .ac-slot-name {
+    font-size: 12px;
   }
   .ac-nav {
-    width: 36px;
-    height: 36px;
-    font-size: 20px;
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
   }
 }
