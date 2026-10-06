@@ -52,7 +52,8 @@ const Columbus = (() => {
     { type: 'fraction', fraction: 1, label: 'ALL' },
   ];
 
-  let selectedChipIndex = 0; // '25' par défaut
+  let selectedChipIndex = 0;
+  let stake = 25; // mise totale composée en cliquant sur les jetons (100 ×3 = 300)
   let betPerLine = 25; // recalculé via refreshBetPerLine() dès que le Wallet est prêt
   let spinning = false;
   let inFreeSpins = false;
@@ -74,9 +75,11 @@ const Columbus = (() => {
   // toujours actives, donc le jeton représente directement ce qui sera
   // débité du solde) : pour un jeton fixe c'est sa valeur telle quelle ;
   // pour un jeton fraction, on prend cette fraction du solde total.
+  // Montant d'un jeton (ajouté à la mise totale). Les jetons "fraction"
+  // se calculent sur ce qui reste disponible (solde - mise déjà composée).
   function chipAmount(def) {
     if (def.type === 'fixed') return def.value;
-    return Math.max(1, Math.floor(Wallet.get() * def.fraction));
+    return Math.max(1, Math.floor(Math.max(0, Wallet.get() - stake) * def.fraction));
   }
 
   // betPerLine reste utilisé en interne pour le calcul des gains par ligne
@@ -87,14 +90,14 @@ const Columbus = (() => {
       betPerLine = freeSpinsBetPerLine;
       return;
     }
-    betPerLine = chipAmount(CHIP_DEFS[selectedChipIndex]) / LINES_COUNT;
+    betPerLine = stake / LINES_COUNT;
   }
 
   function getTotalBet() {
     if (inFreeSpins && freeSpinsBetPerLine !== null) {
       return freeSpinsBetPerLine * LINES_COUNT;
     }
-    return chipAmount(CHIP_DEFS[selectedChipIndex]);
+    return stake;
   }
 
   // Les jetons "fraction" affichent leur montant réel (mise totale) en
@@ -229,13 +232,13 @@ const Columbus = (() => {
             <span class="cd-control-label">Mise</span>
             <div class="cd-bet-multipliers" id="cd-bet-multipliers">
               ${CHIP_DEFS.map((def, i) => {
-                const active = i === selectedChipIndex ? ' active' : '';
+                const active = ''; // chaque clic ajoute le jeton à la mise
                 const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise totale : ${fmt(chipAmount(def))} 🪙"` : '';
                 return `<button type="button" class="cd-bet-mult-btn${active}" data-chip-index="${i}"${tooltip}>${def.label}</button>`;
               }).join('')}
             </div>
           </div>
-          <div class="cd-total-bet">Mise totale : <span id="cd-total-bet">${getTotalBet()}</span> 🪙</div>
+          <div class="cd-total-bet">Mise totale : <span id="cd-total-bet">${getTotalBet()}</span> 🪙<button type="button" class="stake-clear" id="cd-stake-clear">Effacer</button></div>
           <button type="button" class="btn-action cd-paytable-btn" id="cd-paytable-btn">Paytable</button>
           <button type="button" class="btn-action cd-spin-btn" id="cd-spin-btn">LANCER</button>
         </div>
@@ -279,6 +282,7 @@ const Columbus = (() => {
     container.querySelectorAll('.cd-bet-mult-btn').forEach((btn) => {
       btn.addEventListener('click', () => selectChip(Number(btn.dataset.chipIndex)));
     });
+    container.querySelector('#cd-stake-clear').addEventListener('click', clearStake);
     container.querySelector('#cd-spin-btn').addEventListener('click', spin);
     container.querySelector('#cd-paytable-btn').addEventListener('click', () => togglePaytable());
     container.querySelector('#cd-paytable-close').addEventListener('click', () => togglePaytable(false));
@@ -318,20 +322,33 @@ const Columbus = (() => {
     return !spinning && !inFreeSpins && pendingWin === 0;
   }
 
+  // Chaque clic sur un jeton AJOUTE sa valeur à la mise totale (100 ×3 = 300)
   function selectChip(index) {
     if (!canEditControls()) return;
     if (!CHIP_DEFS[index]) return;
-
-    selectedChipIndex = index;
-
-    document.querySelectorAll('.cd-bet-mult-btn').forEach((btn) => {
-      btn.classList.toggle(
-        'active',
-        Number(btn.dataset.chipIndex) === selectedChipIndex
-      );
-    });
-
+    const amount = chipAmount(CHIP_DEFS[index]);
+    if (amount <= 0 || !Wallet.canAfford(stake + amount)) {
+      setMessage('Solde insuffisant pour ajouter ce jeton.');
+      Sfx.denied();
+      return;
+    }
+    stake += amount;
+    Sfx.chip();
+    const btn = document.querySelector(`.cd-bet-mult-btn[data-chip-index="${index}"]`);
+    if (btn) {
+      btn.classList.remove('chip-bump');
+      void btn.offsetWidth;
+      btn.classList.add('chip-bump');
+    }
     refreshBetState();
+  }
+
+  function clearStake() {
+    if (!canEditControls() || stake === 0) return;
+    stake = 0;
+    Sfx.chipsSweep();
+    refreshBetState();
+    setMessage('Mise effacée. Cliquez sur les jetons pour composer votre mise.');
   }
 
   function updateTotalBetDisplay() {
@@ -355,7 +372,7 @@ const Columbus = (() => {
     if (spinBtn) spinBtn.disabled = !enabled || gambling;
     if (paytableBtn) paytableBtn.disabled = !enabled;
     const lockControls = !enabled || inFreeSpins || pendingWin > 0;
-    document.querySelectorAll('.cd-bet-mult-btn').forEach((btn) => {
+    document.querySelectorAll('.cd-bet-mult-btn, #cd-stake-clear').forEach((btn) => {
       btn.disabled = lockControls;
     });
   }
@@ -521,6 +538,8 @@ const Columbus = (() => {
     freeSpinsTotalWin = 0;
 
     Wallet.add(win);
+    Sfx.cashRegister();
+    Sfx.coins(14, 0.9);
 
     hideGamblePanel();
 
@@ -550,6 +569,7 @@ const Columbus = (() => {
       pendingWin = 0;
 
       Wallet.add(win);
+      Sfx.cashRegister();
       hideGamblePanel();
     }
 
@@ -566,6 +586,11 @@ const Columbus = (() => {
       }
     } else {
       const totalBet = getTotalBet();
+      if (totalBet <= 0) {
+        setMessage('Composez votre mise en cliquant sur les jetons.');
+        spinning = false;
+        return;
+      }
       if (!Wallet.canAfford(totalBet)) {
         setMessage('Solde insuffisant pour cette mise.');
         spinning = false;
@@ -573,6 +598,8 @@ const Columbus = (() => {
       }
       Wallet.subtract(totalBet);
     }
+    Sfx.chipStack();
+    if (window.Stats) Stats.round();
 
     toggleControls(false);
     clearWinHighlights();
@@ -592,6 +619,13 @@ const Columbus = (() => {
     return new Promise((resolve) => {
       const reelEls = document.querySelectorAll('.cd-reel');
       let maxDuration = 0;
+
+      // Sons : cliquetis des rouleaux, "clunk" à l'arrêt EXACT de chaque
+      // rouleau (même durée que sa transition CSS), et montée de suspense
+      // si 2 caravelles sont déjà visibles alors qu'il reste des rouleaux.
+      const spinSound = Sfx.reelSpin();
+      const lastDuration = 900 + (reelEls.length - 1) * 260;
+      let anticipating = false;
 
       reelEls.forEach((reelEl, idx) => {
         const track = reelEl.querySelector('.cd-reel-track');
@@ -616,6 +650,20 @@ const Columbus = (() => {
         const finalOffset = -(totalCells - 3) * cellH;
         const duration = 900 + idx * 260;
         maxDuration = Math.max(maxDuration, duration);
+
+        setTimeout(() => {
+          Sfx.reelStop(idx);
+          spinSound.setActive(reelEls.length - 1 - idx);
+          if (idx === reelEls.length - 1) {
+            spinSound.stop();
+            return;
+          }
+          const scattersSoFar = finalGrid.slice(0, idx + 1).flat().filter((id) => id === 'SCATTER').length;
+          if (scattersSoFar >= 2 && !anticipating) {
+            anticipating = true;
+            Sfx.anticipation((lastDuration - duration) / 1000);
+          }
+        }, duration);
 
         requestAnimationFrame(() => {
           track.style.transition = `transform ${duration}ms cubic-bezier(0.17, 0.67, 0.24, 1)`;
@@ -770,6 +818,9 @@ const Columbus = (() => {
     drawWinLines(wins);
     renderWinsList(wins, totalWin);
 
+    // une note par ligne gagnante, au rythme où les lignes se dessinent (idx * 120ms)
+    wins.forEach((w, i) => setTimeout(() => Sfx.lineHit(i), i * 120));
+
     if (inFreeSpins) {
       freeSpinsRemaining -= 1;
       freeSpinsTotalWin += totalWin;
@@ -780,11 +831,13 @@ const Columbus = (() => {
 
       if (totalWin > 0) {
         spawnCoinBurst(Math.min(70, 25 + wins.length * 10));
+        setTimeout(() => Sfx.winFor(totalWin, getTotalBet()), wins.length * 120);
       }
 
       if (scatterTriggered) {
         freeSpinsRemaining += 10;
         spawnCoinBurst(60);
+      Sfx.fanfare();
         setMessage(`⛵ Nouvelles caravelles ! +10 Free Spins (${fmt(totalWin)} 🪙 mis de côté sur ce tour).`);
       } else if (totalWin > 0) {
         setMessage(`Gain : ${fmt(totalWin)} 🪙 mis de côté (total : ${fmt(freeSpinsTotalWin)} 🪙)`);
@@ -845,9 +898,11 @@ const Columbus = (() => {
       updateFreeSpinsBanner();
 
       spawnCoinBurst(60);
+      Sfx.fanfare();
       setMessage('⛵⛵⛵ 3 Caravelles ! 10 Free Spins gagnés !');
     } else if (totalWin > 0) {
       spawnCoinBurst(Math.min(70, 25 + wins.length * 10));
+        setTimeout(() => Sfx.winFor(totalWin, getTotalBet()), wins.length * 120);
       setMessage(wins.length > 1 ? `Gagné sur ${wins.length} lignes !` : 'Ligne gagnante !');
     } else {
       setMessage('Aucun gain, retentez votre chance.');
@@ -930,6 +985,7 @@ const Columbus = (() => {
       coin.style.transition = 'transform 1.1s cubic-bezier(0.22, 0.61, 0.36, 1)';
       coin.style.transform = `rotateY(${coinRotation}deg)`;
     }
+    Sfx.coinFlip(1.1); // même durée que la rotation de la pièce
 
     setTimeout(() => {
       if (choice === result) {
@@ -937,10 +993,12 @@ const Columbus = (() => {
         const amountEl = document.getElementById('cd-gamble-amount');
         if (amountEl) amountEl.textContent = fmt(pendingWin);
         setMessage(`${result === 'pile' ? 'Pile' : 'Face'} ! Gain doublé : ${fmt(pendingWin)} 🪙. Encaisser ou retenter ?`);
+        Sfx.win(2);
         gambling = false;
         setGambleButtonsDisabled(false);
       } else {
         setMessage(`${result === 'pile' ? 'Pile' : 'Face'} ! Perdu, le gain de ce tour est envolé.`);
+        Sfx.lose();
         pendingWin = 0;
         gambling = false;
         hideGamblePanel();
@@ -964,6 +1022,8 @@ const Columbus = (() => {
     pendingWin = 0;
 
     Wallet.add(win);
+    Sfx.cashRegister();
+    Sfx.coins(14, 0.9);
 
     setMessage(`Encaissé : ${fmt(win)} 🪙 !`);
     hideGamblePanel();

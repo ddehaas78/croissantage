@@ -27,7 +27,8 @@ const Baccara = (() => {
   ];
 
   let betType = null;
-  let selectedChipIndex = 1; // '50' par défaut
+  let selectedChipIndex = 1;
+  let stake = 0; // mise composée en cliquant sur les jetons (100 ×3 = 300)
   let dealing = false;
   let built = false;
 
@@ -137,13 +138,15 @@ const Baccara = (() => {
   }
 
   /* ---------------- Contrôles de mise ---------------- */
+  // Les jetons "fraction" se calculent sur ce qui reste disponible
+  // (solde - mise déjà composée).
   function chipAmount(def) {
     if (def.type === 'fixed') return def.value;
-    return Math.floor(Wallet.get() * def.fraction);
+    return Math.floor(Math.max(0, Wallet.get() - stake) * def.fraction);
   }
 
   function betAmount() {
-    return chipAmount(CHIP_DEFS[selectedChipIndex]);
+    return stake;
   }
 
   function canBet() {
@@ -153,6 +156,7 @@ const Baccara = (() => {
   function selectBetType(type) {
     if (!canBet()) return;
     betType = type;
+    Sfx.chip();
     document.querySelectorAll('.bc-zone').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.type === type);
     });
@@ -160,15 +164,36 @@ const Baccara = (() => {
     updateDealButton();
   }
 
+  // Chaque clic sur un jeton AJOUTE sa valeur à la mise (100 ×3 = 300)
   function selectChip(index) {
     if (!canBet()) return;
-    selectedChipIndex = index;
-    document.querySelectorAll('.bc-mult-btn').forEach((btn) => {
-      btn.classList.toggle('active', Number(btn.dataset.chipIndex) === index);
-    });
+    const amount = chipAmount(CHIP_DEFS[index]);
+    if (amount <= 0 || !Wallet.canAfford(stake + amount)) {
+      setMessage('Solde insuffisant pour ajouter ce jeton.', 'msg-warn');
+      Sfx.denied();
+      return;
+    }
+    stake += amount;
+    Sfx.chip();
+    const btn = document.querySelector(`.bc-mult-btn[data-chip-index="${index}"]`);
+    if (btn) {
+      btn.classList.remove('chip-bump');
+      void btn.offsetWidth;
+      btn.classList.add('chip-bump');
+    }
     updateAmountDisplay();
     updateChipDisplay();
     updateDealButton();
+  }
+
+  function clearStake() {
+    if (!canBet() || stake === 0) return;
+    stake = 0;
+    Sfx.chipsSweep();
+    updateAmountDisplay();
+    updateChipDisplay();
+    updateDealButton();
+    setMessage('Mise effacée. Cliquez sur les jetons pour composer votre mise.');
   }
 
   function updateAmountDisplay() {
@@ -208,11 +233,11 @@ const Baccara = (() => {
     const btn = document.getElementById('bc-deal-btn');
     if (!btn) return;
     const canAfford = Wallet.canAfford(betAmount());
-    btn.disabled = dealing || !betType || !canAfford;
+    btn.disabled = dealing || !betType || stake <= 0 || !canAfford;
   }
 
   function toggleBetControls(enabled) {
-    document.querySelectorAll('.bc-zone, .bc-mult-btn').forEach((btn) => {
+    document.querySelectorAll('.bc-zone, .bc-mult-btn, #bc-stake-clear').forEach((btn) => {
       btn.disabled = !enabled;
     });
   }
@@ -223,6 +248,7 @@ const Baccara = (() => {
     const amount = betAmount();
     if (!Wallet.canAfford(amount)) {
       setMessage('Solde insuffisant pour cette mise.', 'msg-warn');
+      Sfx.denied();
       return;
     }
 
@@ -231,6 +257,8 @@ const Baccara = (() => {
     document.getElementById('bc-deal-btn').disabled = true;
     document.getElementById('bc-new-round-btn').hidden = true;
     Wallet.subtract(amount);
+    Sfx.chipStack();
+    if (window.Stats) Stats.round();
     updateTotals(null, null);
     renderHand('bc-player-cards', []);
     renderHand('bc-banker-cards', []);
@@ -242,6 +270,14 @@ const Baccara = (() => {
     setTimeout(() => {
       renderHand('bc-player-cards', round.player);
       renderHand('bc-banker-cards', round.banker);
+
+      // Un "glissé" de carte à chaque palier de l'animation CSS bcCardIn
+      // (index * 0.35s), Joueur puis Banquier juste après.
+      const dealtMax = Math.max(round.player.length, round.banker.length);
+      for (let i = 0; i < dealtMax; i++) {
+        if (round.player[i]) setTimeout(() => Sfx.cardSlide(), i * 350);
+        if (round.banker[i]) setTimeout(() => Sfx.cardSlide(), i * 350 + 90);
+      }
 
       // Chaque carte apparaît avec un délai en cascade (voir bcCardIn dans le
       // CSS : index * 0.35s + 0.4s d'animation) : on attend que la dernière
@@ -272,8 +308,10 @@ const Baccara = (() => {
         const payout = amount * 12; // 11:1 + mise remboursée
         Wallet.add(payout);
         setMessage(`🎴 ${label} ! Vous remportez ${fmt(payout - amount)} 🪙.`, 'msg-good');
+        Sfx.winFor(payout, amount);
       } else {
         setMessage(`🎴 Pas de ${label.toLowerCase()}. Vous perdez ${fmt(amount)} 🪙.`, 'msg-bad');
+        Sfx.lose();
       }
     } else if (betType === winner) {
       let payout;
@@ -282,12 +320,15 @@ const Baccara = (() => {
       else payout = amount * 9; // tie 8:1 + mise remboursée
       Wallet.add(payout);
       setMessage(`🎴 ${winnerLabel} gagne ! Vous remportez ${fmt(payout - amount)} 🪙.`, 'msg-good');
+      Sfx.winFor(payout, amount);
     } else if (winner === 'tie') {
       // Une Égalité rembourse les mises Joueur/Banquier (push), elles ne sont pas perdues
       Wallet.add(amount);
       setMessage(`🎴 Égalité ! Votre mise de ${fmt(amount)} 🪙 est remboursée.`, 'msg-warn');
+      Sfx.push();
     } else {
       setMessage(`🎴 ${winnerLabel} gagne. Vous perdez ${fmt(amount)} 🪙.`, 'msg-bad');
+      Sfx.lose();
     }
 
     dealing = false;
@@ -345,7 +386,7 @@ const Baccara = (() => {
 
   function buildMultipliersHTML() {
     return CHIP_DEFS.map((def, i) => {
-      const active = i === selectedChipIndex ? ' active' : '';
+      const active = ''; // chaque clic ajoute le jeton à la mise
       const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise : ${fmt(chipAmount(def))} 🪙"` : '';
       return `<button type="button" class="bc-mult-btn${active}" data-chip-index="${i}"${tooltip}>${def.label}</button>`;
     }).join('');
@@ -376,7 +417,7 @@ const Baccara = (() => {
         <div class="bc-side-panel">
           <div class="bc-panel-title">Montant de la mise</div>
           <div class="bc-mult-row">${buildMultipliersHTML()}</div>
-          <div class="bc-amount-display">Mise : <span id="bc-amount">${fmt(betAmount())}</span> 🪙</div>
+          <div class="bc-amount-display">Mise : <span id="bc-amount">${fmt(betAmount())}</span> 🪙<button type="button" class="stake-clear" id="bc-stake-clear">Effacer</button></div>
 
           <button type="button" class="btn btn-primary bc-deal-btn" id="bc-deal-btn" disabled>Distribuer</button>
           <button type="button" class="btn btn-ghost bc-new-round-btn" id="bc-new-round-btn" hidden>Nouvelle main</button>
@@ -390,6 +431,7 @@ const Baccara = (() => {
     container.querySelectorAll('.bc-mult-btn').forEach((btn) => {
       btn.addEventListener('click', () => selectChip(Number(btn.dataset.chipIndex)));
     });
+    document.getElementById('bc-stake-clear').addEventListener('click', clearStake);
     document.getElementById('bc-deal-btn').addEventListener('click', deal);
     document.getElementById('bc-new-round-btn').addEventListener('click', newRound);
 

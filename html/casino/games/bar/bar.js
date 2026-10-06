@@ -138,28 +138,134 @@ const Bar = (() => {
     ).join('');
   }
 
-  // --- Sélecteur de skin ---
-  // rootPrefix '../' car bar.html est dans /html/, un niveau sous la racine
-  // où se trouve assets/player/.
+  // --- Sélecteur de skin + caisses ---
+  // rootPrefix '../../' car bar.html est dans games/bar/, deux niveaux sous
+  // la racine où se trouve assets/player/.
   const SKIN_ROOT_PREFIX = '../../';
 
-  function buildSkinPanelHTML() {
-    if (typeof Skins === 'undefined') return '';
+  // Caisse façon Counter-Strike : on tire d'abord une RARETÉ selon son poids,
+  // puis un perso au hasard dans cette rareté. En cas de doublon, une partie
+  // de la mise est remboursée selon la rareté.
+  const CASE_PRICE = 750;
+  const CASE_ODDS = [
+    { rarity: 'commun',     weight: 55, refund: 150 },
+    { rarity: 'rare',       weight: 28, refund: 300 },
+    { rarity: 'epique',     weight: 12, refund: 600 },
+    { rarity: 'legendaire', weight: 4,  refund: 1500 },
+    { rarity: 'mythique',   weight: 1,  refund: 3000 },
+  ];
+  const CASE_REEL_LENGTH = 60;   // nombre de cartes dans la bande
+  const CASE_WIN_INDEX = 52;     // position de la carte gagnante dans la bande
+  const CASE_SPIN_MS = 6500;     // durée du défilement (doit matcher le JS ci-dessous uniquement)
+
+  let caseOpening = false;
+
+  function caseSkins() {
+    return Skins.getAll().filter((s) => !s.starter);
+  }
+
+  // Ne garde que les raretés qui ont au moins un perso dans la caisse
+  function activeOdds() {
+    const pool = caseSkins();
+    return CASE_ODDS.filter((o) => pool.some((s) => s.rarity === o.rarity));
+  }
+
+  function rollSkin() {
+    const odds = activeOdds();
+    const total = odds.reduce((sum, o) => sum + o.weight, 0);
+    let r = Math.random() * total;
+    let picked = odds[odds.length - 1];
+    for (const o of odds) {
+      if (r < o.weight) { picked = o; break; }
+      r -= o.weight;
+    }
+    const pool = caseSkins().filter((s) => s.rarity === picked.rarity);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function refundFor(skin) {
+    const o = CASE_ODDS.find((x) => x.rarity === skin.rarity);
+    return o ? o.refund : 0;
+  }
+
+  function buildSkinGridHTML() {
     const currentId = Skins.getCurrentId();
-    const thumbs = Skins.getAll()
+    return Skins.getAll()
       .map((skin) => {
         const url = Skins.urlFor(skin.id, SKIN_ROOT_PREFIX);
-        const active = skin.id === currentId ? ' active' : '';
-        return `<button type="button" class="skin-thumb${active}" data-skin="${skin.id}" aria-label="Choisir le skin ${skin.name}">
+        const owned = Skins.isOwned(skin.id);
+        const rar = Skins.rarityOf(skin.id);
+        const cls = (skin.id === currentId ? ' active' : '') + (owned ? '' : ' locked');
+        const label = owned ? `Choisir le skin ${skin.name}` : `${skin.name} — à débloquer dans une caisse`;
+        return `<button type="button" class="skin-thumb${cls}" data-skin="${skin.id}" style="--rarity:${rar.color}" aria-label="${label}">
           <span class="skin-thumb-sprite" style="background-image:url('${url}')"></span>
-          <span class="skin-thumb-name">${skin.name}</span>
+          <span class="skin-thumb-name">${owned ? skin.name : '???'}</span>
+          ${owned ? '' : '<span class="skin-thumb-lock" aria-hidden="true">🔒</span>'}
         </button>`;
       })
       .join('');
+  }
+
+  function buildOddsHTML() {
+    const odds = activeOdds();
+    const total = odds.reduce((sum, o) => sum + o.weight, 0);
+    const rows = odds
+      .map((o) => {
+        const rar = Skins.RARITIES[o.rarity];
+        const names = caseSkins().filter((s) => s.rarity === o.rarity).map((s) => s.name).join(', ');
+        const pct = ((o.weight / total) * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+        return `<li style="--rarity:${rar.color}">
+          <span class="bar-case-odds-name">${rar.label}</span>
+          <span class="bar-case-odds-pct">${pct} %</span>
+          <span class="bar-case-odds-who">${names} · doublon : +${fmt(o.refund)} 🪙</span>
+        </li>`;
+      })
+      .join('');
+    const ev = odds.reduce((sum, o) => sum + (o.weight / total) * o.refund, 0);
+    return `<ul class="bar-case-odds-list">${rows}</ul>
+      <p class="bar-case-odds-note">💡 Une fois la collection complète, une caisse ne rapporte plus en moyenne que
+      <strong>${fmt(Math.round(ev))} 🪙</strong> pour ${fmt(CASE_PRICE)} 🪙 payés : c'est l'avantage de la maison.</p>`;
+  }
+
+  function buildSkinPanelHTML() {
+    if (typeof Skins === 'undefined') return '';
     return `<div class="bar-skin-panel">
-      <div class="bar-skin-title">Apparence du personnage</div>
-      <div class="bar-skin-grid">${thumbs}</div>
+      <div class="bar-skin-title">Mes personnages <span id="bar-skin-count"></span></div>
+      <div class="bar-skin-grid" id="bar-skin-grid">${buildSkinGridHTML()}</div>
+      <div class="bar-case">
+        <div class="bar-case-crate" aria-hidden="true"><span>🥐</span></div>
+        <button type="button" class="bar-case-btn" id="bar-case-open">Ouvrir une caisse · ${fmt(CASE_PRICE)} 🪙</button>
+        <button type="button" class="bar-case-odds-toggle" id="bar-case-odds-toggle">Voir les chances ▾</button>
+        <div class="bar-case-odds hidden" id="bar-case-odds">${buildOddsHTML()}</div>
+      </div>
     </div>`;
+  }
+
+  function refreshSkinGrid() {
+    const grid = document.getElementById('bar-skin-grid');
+    if (!grid) return;
+    grid.innerHTML = buildSkinGridHTML();
+    grid.querySelectorAll('.skin-thumb').forEach((btn) => {
+      btn.addEventListener('click', () => selectSkin(btn.dataset.skin));
+    });
+    const count = document.getElementById('bar-skin-count');
+    if (count) count.textContent = `(${Skins.getOwnedIds().length}/${Skins.getAll().length})`;
+    applyThumbFrame();
+  }
+
+  function selectSkin(id) {
+    const skin = Skins.getSkinById(id);
+    if (!Skins.isOwned(id)) {
+      setMessage(`🔒 Ce personnage se débloque en ouvrant une caisse (${fmt(CASE_PRICE)} 🪙).`, 'msg-warn');
+      Sfx.denied();
+      return;
+    }
+    Skins.setCurrentId(id);
+    Sfx.click();
+    document.querySelectorAll('#bar-skin-grid .skin-thumb').forEach((b) => {
+      b.classList.toggle('active', b.dataset.skin === id);
+    });
+    setMessage(`👤 ${skin.name} équipé.`, 'msg-good');
   }
 
   // Anime toutes les vignettes en boucle : gauche -> haut -> droite -> bas,
@@ -168,20 +274,156 @@ const Bar = (() => {
   const SKIN_THUMB_CELL = 40; // doit matcher .skin-thumb-sprite (width/height) en CSS
   const SKIN_ROW_ORDER = [1, 3, 2, 0]; // gauche, haut, droite, bas (lignes du spritesheet)
   const SKIN_WALK_FRAMES = [0, 1, 2, 1]; // colonnes : pas gauche, idle, pas droit, idle
+  let thumbRowIdx = 0;
+  let thumbFrameIdx = 0;
 
-  function initSkinThumbAnimation(container) {
-    const thumbs = container.querySelectorAll('.skin-thumb-sprite');
-    if (!thumbs.length) return;
-    let rowIdx = 0;
-    let frameIdx = 0;
+  function applyThumbFrame() {
+    const row = SKIN_ROW_ORDER[thumbRowIdx];
+    const col = SKIN_WALK_FRAMES[thumbFrameIdx];
+    const pos = `${-col * SKIN_THUMB_CELL}px ${-row * SKIN_THUMB_CELL}px`;
+    // requête à chaque tick : la grille est reconstruite après chaque caisse
+    document.querySelectorAll('#bar-skin-grid .skin-thumb-sprite').forEach((el) => {
+      el.style.backgroundPosition = pos;
+    });
+  }
+
+  function initSkinThumbAnimation() {
     setInterval(() => {
-      frameIdx = (frameIdx + 1) % SKIN_WALK_FRAMES.length;
-      if (frameIdx === 0) rowIdx = (rowIdx + 1) % SKIN_ROW_ORDER.length;
-      const row = SKIN_ROW_ORDER[rowIdx];
-      const col = SKIN_WALK_FRAMES[frameIdx];
-      const pos = `${-col * SKIN_THUMB_CELL}px ${-row * SKIN_THUMB_CELL}px`;
-      thumbs.forEach((el) => { el.style.backgroundPosition = pos; });
+      thumbFrameIdx = (thumbFrameIdx + 1) % SKIN_WALK_FRAMES.length;
+      if (thumbFrameIdx === 0) thumbRowIdx = (thumbRowIdx + 1) % SKIN_ROW_ORDER.length;
+      applyThumbFrame();
     }, 260);
+  }
+
+  // --- Ouverture de caisse (sons : core/sfx.js) ---
+
+  function caseCardHTML(skin, extraClass) {
+    const rar = Skins.RARITIES[skin.rarity];
+    const url = Skins.urlFor(skin.id, SKIN_ROOT_PREFIX);
+    return `<div class="bar-case-card${extraClass || ''}" style="--rarity:${rar.color}">
+      <span class="bar-case-card-sprite" style="background-image:url('${url}')"></span>
+      <span class="bar-case-card-name">${skin.name}</span>
+      <span class="bar-case-card-rarity">${rar.label}</span>
+    </div>`;
+  }
+
+  function toggleCaseControls(enabled) {
+    const btn = document.getElementById('bar-case-open');
+    if (btn) btn.disabled = !enabled;
+  }
+
+  function openCase() {
+    if (caseOpening || typeof Skins === 'undefined') return;
+    if (!Wallet.canAfford(CASE_PRICE)) {
+      setMessage(`Solde insuffisant : une caisse coûte ${fmt(CASE_PRICE)} 🪙.`, 'msg-warn');
+      Sfx.denied();
+      return;
+    }
+    Wallet.subtract(CASE_PRICE);
+    if (window.Stats) Stats.bar('cases');
+    Sfx.chipStack();
+    caseOpening = true;
+    toggleCaseControls(false);
+
+    // Le résultat est tiré AVANT l'animation (comme dans CS) : la bande
+    // n'est qu'une mise en scène construite autour de la carte gagnante.
+    const winner = rollSkin();
+    const isNew = Skins.unlock(winner.id);
+
+    const cards = [];
+    for (let i = 0; i < CASE_REEL_LENGTH; i++) {
+      cards.push(i === CASE_WIN_INDEX ? caseCardHTML(winner, ' is-winner') : caseCardHTML(rollSkin()));
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-backdrop bar-case-backdrop';
+    overlay.innerHTML = `
+      <div class="modal bar-case-modal" role="dialog" aria-label="Ouverture de caisse">
+        <div class="bar-case-modal-title">Caisse Croissantage</div>
+        <div class="bar-case-reel">
+          <div class="bar-case-track">${cards.join('')}</div>
+          <div class="bar-case-marker"></div>
+        </div>
+        <p class="game-msg bar-case-result" id="bar-case-result">Ça tourne…</p>
+        <div class="bar-case-actions hidden" id="bar-case-actions"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    refreshSkinGrid();
+
+    const reel = overlay.querySelector('.bar-case-reel');
+    const track = overlay.querySelector('.bar-case-track');
+    const cardEls = track.querySelectorAll('.bar-case-card');
+    const cardW = cardEls[0].offsetWidth;
+    const step = cardEls[1].offsetLeft - cardEls[0].offsetLeft;
+    const firstLeft = cardEls[0].offsetLeft;
+    // Arrêt aléatoire DANS la carte gagnante (pas toujours pile au centre)
+    const jitter = (Math.random() - 0.5) * (cardW - 16);
+    const targetX = -(firstLeft + CASE_WIN_INDEX * step + cardW / 2 + jitter) + reel.clientWidth / 2;
+
+    void track.offsetWidth; // force le reflow pour que la transition parte bien de 0
+    track.style.transition = `transform ${CASE_SPIN_MS}ms cubic-bezier(0.08, 0.75, 0.15, 1)`;
+    track.style.transform = `translateX(${targetX}px)`;
+
+    // "Tic" à chaque carte qui passe sous le repère
+    let lastIdx = -1;
+    let rafId = 0;
+    function watch() {
+      const x = new DOMMatrixReadOnly(getComputedStyle(track).transform).m41;
+      const idx = Math.floor((reel.clientWidth / 2 - x - firstLeft) / step);
+      if (idx !== lastIdx) { lastIdx = idx; Sfx.caseTick(); }
+      rafId = requestAnimationFrame(watch);
+    }
+    rafId = requestAnimationFrame(watch);
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      cancelAnimationFrame(rafId);
+      revealCase(overlay, winner, isNew);
+    };
+    track.addEventListener('transitionend', finish, { once: true });
+    setTimeout(finish, CASE_SPIN_MS + 300); // filet de sécurité
+  }
+
+  function revealCase(overlay, winner, isNew) {
+    const rar = Skins.RARITIES[winner.rarity];
+    overlay.querySelector('.bar-case-card.is-winner').classList.add('revealed');
+    overlay.querySelector('.bar-case-modal').style.setProperty('--rarity', rar.color);
+    overlay.querySelector('.bar-case-modal').classList.add('revealed');
+    Sfx.caseReveal(CASE_ODDS.findIndex((o) => o.rarity === winner.rarity));
+
+    const result = overlay.querySelector('#bar-case-result');
+    const actions = overlay.querySelector('#bar-case-actions');
+    if (isNew) {
+      result.innerHTML = `✨ Nouveau personnage : <strong style="color:${rar.color}">${winner.name}</strong> (${rar.label}) !`;
+      result.className = 'game-msg bar-case-result msg-good';
+      setMessage(`🎉 ${winner.name} débloqué !`, 'msg-good');
+    } else {
+      const refund = refundFor(winner);
+      Wallet.add(refund);
+      if (window.Stats) Stats.bar('duplicates');
+      setTimeout(() => Sfx.coins(10, 0.6), 400);
+      result.innerHTML = `Doublon : <strong style="color:${rar.color}">${winner.name}</strong>, tu récupères ${fmt(refund)} 🪙.`;
+      result.className = 'game-msg bar-case-result msg-warn';
+      setMessage(`Doublon ${winner.name} : +${fmt(refund)} 🪙.`, 'msg-warn');
+    }
+
+    actions.innerHTML = `
+      ${isNew ? '<button type="button" class="bar-case-btn" data-act="equip">Équiper</button>' : ''}
+      <button type="button" class="bar-case-again" data-act="again">Rouvrir · ${fmt(CASE_PRICE)} 🪙</button>
+      <button type="button" class="bar-case-close" data-act="close">Fermer</button>`;
+    actions.classList.remove('hidden');
+
+    const close = () => {
+      overlay.remove();
+      caseOpening = false;
+      toggleCaseControls(true);
+    };
+    actions.querySelector('[data-act="close"]').addEventListener('click', close);
+    actions.querySelector('[data-act="again"]').addEventListener('click', () => { close(); openCase(); });
+    const equip = actions.querySelector('[data-act="equip"]');
+    if (equip) equip.addEventListener('click', () => { selectSkin(winner.id); close(); });
   }
 
   function setMessage(msg, cls) {
@@ -196,10 +438,20 @@ const Bar = (() => {
     if (!drink) return;
     if (drink.price > 0 && !Wallet.canAfford(drink.price)) {
       setMessage('Solde insuffisant pour cette commande.', 'msg-warn');
+      Sfx.denied();
       return;
     }
     Wallet.subtract(drink.price);
     Drunk.addDose(drink.dose);
+    if (window.Stats) Stats.bar(drink.dose < 0 ? 'remedies' : 'cocktails');
+    // cocktail : on verse puis les verres trinquent ; eau / café : on verse puis on boit
+    if (drink.dose < 0) {
+      Sfx.pour(0.5);
+      Sfx.sip(0.55);
+    } else {
+      Sfx.pour(0.8);
+      Sfx.clink(0.8);
+    }
     setMessage(`🍹 ${drink.name} servi — ${drink.tagline}`, drink.dose < 0 ? 'msg-good' : '');
   }
 
@@ -253,14 +505,16 @@ const Bar = (() => {
       btn.addEventListener('click', () => order(btn.dataset.drink));
     });
 
-    container.querySelectorAll('.skin-thumb').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        if (typeof Skins === 'undefined') return;
-        Skins.setCurrentId(btn.dataset.skin);
-        container.querySelectorAll('.skin-thumb').forEach((b) => b.classList.toggle('active', b === btn));
+    if (typeof Skins !== 'undefined') {
+      refreshSkinGrid();
+      initSkinThumbAnimation();
+      document.getElementById('bar-case-open').addEventListener('click', openCase);
+      document.getElementById('bar-case-odds-toggle').addEventListener('click', (e) => {
+        const odds = document.getElementById('bar-case-odds');
+        const hidden = odds.classList.toggle('hidden');
+        e.currentTarget.textContent = hidden ? 'Voir les chances ▾' : 'Masquer les chances ▴';
       });
-    });
-    initSkinThumbAnimation(container);
+    }
 
     // Si une image de cocktail est manquante/mal nommée, on retombe sur un emoji
     // générique plutôt que d'afficher l'icône "image cassée" du navigateur.

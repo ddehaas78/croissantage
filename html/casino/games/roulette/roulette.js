@@ -228,6 +228,7 @@ const Roulette = (() => {
       btn.addEventListener('click', () => {
         selectedChipIndex = Number(btn.dataset.chipIndex);
         container.querySelectorAll('.rl-chip').forEach((c) => c.classList.toggle('active', c === btn));
+        Sfx.click();
         const def = CHIP_DEFS[selectedChipIndex];
         const amount = chipAmount(def);
         setMessage(
@@ -260,9 +261,11 @@ const Roulette = (() => {
     const amount = selectedAmount();
     if (!Wallet.canAfford(amount)) {
       setMessage('Solde insuffisant pour ce jeton.');
+      Sfx.denied();
       return;
     }
     Wallet.subtract(amount);
+    Sfx.chip();
 
     const key = btn.dataset.key;
     const numbers = btn.dataset.numbers.split(',').map(Number);
@@ -290,6 +293,7 @@ const Roulette = (() => {
     const refund = Math.min(selectedAmount(), entry.amount);
     entry.amount -= refund;
     Wallet.add(refund);
+    Sfx.chip();
     if (entry.amount <= 0) {
       bets = bets.filter((b) => b.key !== key);
       updateBetBadge(key, 0);
@@ -346,7 +350,10 @@ const Roulette = (() => {
   function clearBets() {
     if (spinning) return;
     const total = bets.reduce((sum, b) => sum + b.amount, 0);
-    if (total > 0) Wallet.add(total);
+    if (total > 0) {
+      Wallet.add(total);
+      Sfx.chipsSweep();
+    }
     bets.forEach((b) => updateBetBadge(b.key, 0));
     bets = [];
     updateTotal();
@@ -364,6 +371,8 @@ const Roulette = (() => {
     spinning = true;
     toggleControls(false);
     setMessage('La bille tourne...');
+    Sfx.chipStack();
+    if (window.Stats) Stats.round();
 
     const winningNumber = Math.floor(Math.random() * 37); // 0..36 équiprobable
 
@@ -398,7 +407,44 @@ const Roulette = (() => {
         ballEl.style.transform = `rotate(${ballFinal}deg)`;
       });
 
-      setTimeout(resolve, duration + 150);
+      // --- Sons calés sur la VRAIE position de la bille par rapport à la roue ---
+      // Roulement continu dont le volume suit la vitesse, puis un "tic" à
+      // chaque case franchie quand la bille ralentit (les tics s'espacent
+      // naturellement avec la décélération de l'animation).
+      const roll = Sfx.rouletteRoll();
+      let lastRel = null;
+      let lastTime = performance.now();
+      let pocketAcc = 0;
+      let rafId = 0;
+      function listen(now) {
+        const rel = Sfx.angleOf(ballEl) - Sfx.angleOf(wheelEl);
+        if (lastRel !== null) {
+          const delta = ((((rel - lastRel) % 360) + 540) % 360) - 180; // gère le passage 180° / -180°
+          const dt = Math.max(1, now - lastTime) / 1000;
+          const speed = Math.abs(delta) / dt; // degrés / seconde
+          roll.update(speed / 2500);
+          if (speed < 520) {
+            pocketAcc += Math.abs(delta);
+            if (pocketAcc >= SLICE_ANGLE) {
+              pocketAcc %= SLICE_ANGLE;
+              Sfx.fretTick(0.5 + speed / 1000);
+            }
+          }
+        }
+        lastRel = rel;
+        lastTime = now;
+        rafId = requestAnimationFrame(listen);
+      }
+      rafId = requestAnimationFrame(listen);
+
+      // la bille sautille et se cale dans sa case juste avant l'arrêt complet
+      setTimeout(() => {
+        cancelAnimationFrame(rafId);
+        roll.stop();
+        Sfx.ballSettle();
+      }, duration - 250);
+
+      setTimeout(resolve, duration + 250);
     });
   }
 
@@ -421,10 +467,12 @@ const Roulette = (() => {
 
     if (totalWin > 0) {
       Wallet.add(totalWin);
+      Sfx.winFor(totalWin, totalStaked);
       const profit = totalWin - totalStaked;
       setMessage(`${winningNumber} ${colLabel} — Gagné ${fmt(totalWin)} 🪙 (profit ${fmt(profit)} 🪙)`);
     } else {
       setMessage(`${winningNumber} ${colLabel} — Perdu, tentez à nouveau.`);
+      Sfx.lose();
     }
 
     // historique

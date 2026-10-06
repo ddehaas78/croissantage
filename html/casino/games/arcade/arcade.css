@@ -134,6 +134,15 @@ body {
   line-height: 1;
 }
 
+/* jeu illustré par une image plutôt qu'un emoji (champ img dans arcade.js) */
+.ac-slot-img {
+  width: 1.3em;
+  height: 1.3em;
+  display: block;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+}
+
 .ac-slot-name {
   font-family: var(--font-display);
   font-weight: 700;

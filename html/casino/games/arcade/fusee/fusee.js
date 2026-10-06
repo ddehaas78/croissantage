@@ -19,7 +19,7 @@ const Fusee = (() => {
 
   let bet = 0;
   let lastBet = 0;
-  let cashoutTarget = 2.00;
+  let cashoutTarget = Infinity; // pas d'encaissement auto par défaut
   let inRound = false;
   let cashedOut = false;
   let multiplier = 1.00;
@@ -31,11 +31,32 @@ const Fusee = (() => {
   let history = []; // { mult, win }
   let built = false;
 
+  // Sons : moteur dont le sifflement monte avec le multiplicateur + cloche à chaque palier
+  const MILESTONES = [1.5, 2, 3, 5, 10, 25, 50, 100];
+  let engineSound = null;
+  let milestoneIdx = 0;
+
   // Marque le point où le joueur a encaissé, pour continuer à dessiner la
   // courbe au-delà (en pointillés) et révéler jusqu'où la fusée serait
   // allée avant le vrai crash.
   let cashoutMultiplier = null;
   let cashoutElapsedTime = null;
+
+  // ---------------- Effets visuels ----------------
+  // particles : flammes / fumée de la traînée + éclats d'explosion (coords écran)
+  // stars : champ d'étoiles qui défile à l'opposé de la fusée (sensation de vitesse)
+  // shakeBoost : secousse supplémentaire (crash) qui décroît à chaque frame
+  let particles = [];
+  let stars = [];
+  let shakeBoost = 0;
+  let explosionStart = 0;
+  let explosionRaf = null;
+  let tip = null; // dernière position de la pointe de la courbe
+  // Courbure de l'exponentielle affichée : elle AUGMENTE avec le temps de vol,
+  // donc plus la fusée tient longtemps, plus la fin de courbe devient verticale.
+  const CURVE_K_START = 2.2;
+  const CURVE_K_PER_SEC = 0.16;
+  const CURVE_K_MAX = 9;
 
   let canvas, ctx;
 
@@ -46,7 +67,7 @@ const Fusee = (() => {
   // que la pointe de la courbe doit idéalement occuper ; EASE = vitesse de
   // lissage du zoom (plus petit = plus doux).
   const MIN_WINDOW = 6;
-  const WINDOW_FILL = 0.95;
+  const WINDOW_FILL = 0.94;
   const MULT_FILL = 0.9;
   const ZOOM_EASE = 0.07;
   let smoothedWindow = MIN_WINDOW;
@@ -64,12 +85,12 @@ const Fusee = (() => {
   function updateScale() {
     const desiredWindow = Math.max(elapsedTime / WINDOW_FILL, MIN_WINDOW);
     smoothedWindow += (desiredWindow - smoothedWindow) * ZOOM_EASE;
-    const minRequiredWindow = Math.max(elapsedTime / 0.97, MIN_WINDOW);
+    const minRequiredWindow = Math.max(elapsedTime / 0.96, MIN_WINDOW);
     if (smoothedWindow < minRequiredWindow) smoothedWindow = minRequiredWindow;
 
     const desiredMax = Math.max(1 + (multiplier - 1) / MULT_FILL, 2);
     smoothedMaxMult += (desiredMax - smoothedMaxMult) * ZOOM_EASE;
-    const minRequiredMax = Math.max(1 + (multiplier - 1) / 0.95, 2);
+    const minRequiredMax = Math.max(1 + (multiplier - 1) / 0.93, 2);
     if (smoothedMaxMult < minRequiredMax) smoothedMaxMult = minRequiredMax;
 
     return { displayWindow: smoothedWindow, maxMultiplier: smoothedMaxMult };
@@ -122,16 +143,19 @@ const Fusee = (() => {
       .join('');
   }
 
+  // Taille du canvas en pixels CSS "de mise en page" (clientWidth/Height),
+  // et non getBoundingClientRect() : avec le zoom automatique de core/fit.js,
+  // getBoundingClientRect renvoie une taille déjà zoomée, ce qui faisait
+  // appliquer le zoom deux fois (dessin trop petit dans son cadre).
   function setupCanvas() {
     if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(dpr, dpr);
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const zoom = w ? canvas.getBoundingClientRect().width / w : 1;
+    const ratio = (window.devicePixelRatio || 1) * zoom; // reste net même zoomé
+    canvas.width = Math.round(w * ratio);
+    canvas.height = Math.round(h * ratio);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   }
 
   function updateYAxis(maxMultiplier) {
@@ -164,10 +188,11 @@ const Fusee = (() => {
 
   function drawCurve() {
     if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
     ctx.clearRect(0, 0, width, height);
+
+    drawStars(width, height);
 
     if (phase !== 'running' && phase !== 'crashed') return;
 
@@ -198,8 +223,11 @@ const Fusee = (() => {
     // point ACTUEL (rawFrac, qui vaut toujours 1 pile au dernier point), pas
     // à la fraction absolue de l'axe — sinon la pointe n'atteint jamais le
     // niveau prévu par MULT_FILL et il reste un grand vide en haut.
-    const VISUAL_CURVE_POWER = 1.7;
-    const currentSpan = Math.max(multiplier - 1, 1e-6);
+    // Forme exponentielle normalisée : (e^(K·t) - 1) / (e^K - 1), t = fraction
+    // du temps écoulé. La pointe vaut toujours 1 (= multiplicateur actuel).
+    // K grandit avec le temps de vol : au début la courbe est douce, puis
+    // elle se redresse jusqu'à devenir presque verticale.
+    const CURVE_K = Math.min(CURVE_K_MAX, CURVE_K_START + elapsedTime * CURVE_K_PER_SEC);
     const points = [];
     for (let i = 0; i <= numPoints; i++) {
       const t = i / numPoints;
@@ -208,8 +236,7 @@ const Fusee = (() => {
       // x suit le temps réel écoulé sur une échelle fixe (displayWindow),
       // donc la fusée démarre à gauche (x≈0) et avance vers la droite.
       const x = width * (timeAtPoint / displayWindow);
-      const rawFrac = Math.min(1, Math.max(0, (multAtPoint - 1) / currentSpan));
-      const shapedFrac = Math.pow(rawFrac, VISUAL_CURVE_POWER);
+      const shapedFrac = (Math.exp(CURVE_K * t) - 1) / (Math.exp(CURVE_K) - 1);
       const normalized = shapedFrac * ((multiplier - 1) / (maxMultiplier - 1));
       const y = height - Math.min(1, Math.max(0, normalized)) * height;
       points.push({ x, y, t: timeAtPoint });
@@ -275,53 +302,244 @@ const Fusee = (() => {
     }
 
     const last = points[points.length - 1];
-    const prev = points[points.length - 2] || last;
+    const prev = points[Math.max(0, points.length - 4)] || last;
+    tip = { x: last.x, y: last.y };
 
     if (phase === 'crashed') {
-      ctx.font = '28px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('💥', last.x, last.y);
-    } else if (rocketImg.complete && rocketImg.naturalWidth) {
-      const angle = Math.atan2(last.y - prev.y, last.x - prev.x);
+      updateAndDrawParticles();
+      drawExplosion(last.x, last.y);
+      return;
+    }
 
-      // ⚠️ Orientation du sprite : dans l'aperçu, fusee.png a le NEZ VERS LE
-      // HAUT quand l'image n'est pas tournée (comme une fusée posée sur son
-      // pas de tir), et pas vers la droite. On corrige donc l'angle de +90°
-      // pour aligner le nez sur la direction réelle de la courbe, et on
-      // dimensionne/positionne l'image en "portrait" (nez en haut du PNG).
-      // → Si votre fichier fusee.png a en fait le nez tourné vers la DROITE
-      //   au repos, passez NOSE_ORIENTATION à 'right' juste en dessous.
-      const NOSE_ORIENTATION = 'up'; // 'up' | 'right'
+    const angle = Math.atan2(last.y - prev.y, last.x - prev.x);
+    drawRocket(last.x, last.y, angle, goldBright);
+    updateAndDrawParticles();
+  }
 
-      let drawW, drawH, offsetX, offsetY, extraRotation;
-      if (NOSE_ORIENTATION === 'up') {
-        drawH = 58;
-        drawW = drawH * (rocketImg.naturalWidth / rocketImg.naturalHeight);
-        offsetX = -drawW / 2;
-        offsetY = -drawH * 0.08; // le nez (haut du PNG) touche la pointe de la courbe
-        extraRotation = Math.PI / 2;
-      } else {
-        drawW = 54;
-        drawH = drawW * (rocketImg.naturalHeight / rocketImg.naturalWidth);
-        offsetX = -drawW * 0.85;
-        offsetY = -drawH / 2;
-        extraRotation = 0;
-      }
+  /* ---------------- Fusée : sprite + flamme + traînée ---------------- */
+  // ⚠️ Orientation du sprite : fusee.png a le NEZ VERS LE HAUT au repos.
+  // On tourne donc de +90° pour aligner le nez sur la direction de la courbe.
+  const ROCKET_H = 84;
 
-      ctx.save();
-      ctx.translate(last.x, last.y);
-      ctx.rotate(angle + extraRotation);
-      ctx.shadowColor = 'rgba(212, 175, 55, 0.85)';
-      ctx.shadowBlur = 14;
-      ctx.drawImage(rocketImg, offsetX, offsetY, drawW, drawH);
-      ctx.restore();
-    } else {
+  function drawRocket(x, y, angle, goldBright) {
+    if (!(rocketImg.complete && rocketImg.naturalWidth)) {
       ctx.beginPath();
-      ctx.arc(last.x, last.y, 5, 0, Math.PI * 2);
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
       ctx.fillStyle = goldBright;
       ctx.fill();
+      return;
     }
+    const drawH = ROCKET_H;
+    const drawW = drawH * (rocketImg.naturalWidth / rocketImg.naturalHeight);
+    const offsetY = -drawH * 0.08; // le nez touche la pointe de la courbe
+    // sortie des réacteurs (repère local) : dans fusee.png la fusée occupe
+    // 9 % -> 74 % de la hauteur, on démarre la flamme juste au-dessus de la
+    // tuyère pour qu'elle passe SOUS le sprite, sans trou.
+    const tailY = offsetY + drawH * 0.71;
+
+    // la fusée vibre un peu plus fort à mesure qu'elle monte
+    const wobble = Math.min(0.09, 0.012 * Math.log(multiplier + 1) * 3) * (Math.random() - 0.5);
+    const r = angle + Math.PI / 2 + wobble;
+
+    // particules de feu / fumée émises par les réacteurs (coords écran)
+    const back = { x: -Math.cos(angle), y: -Math.sin(angle) };
+    const tailX = x - tailY * Math.sin(r);
+    const tailYw = y + tailY * Math.cos(r);
+    if (!cashedOut || phase === 'running') {
+      const power = Math.min(2.2, 1 + Math.log(multiplier) * 0.6);
+      for (let i = 0; i < 3; i++) {
+        const spread = (Math.random() - 0.5) * 1.6;
+        particles.push({
+          kind: Math.random() < 0.7 ? 'fire' : 'smoke',
+          x: tailX + (Math.random() - 0.5) * 6,
+          y: tailYw + (Math.random() - 0.5) * 6,
+          vx: back.x * (2 + Math.random() * 2.5) * power - back.y * spread,
+          vy: back.y * (2 + Math.random() * 2.5) * power + back.x * spread,
+          life: 0,
+          max: 18 + Math.random() * 18,
+          size: 3 + Math.random() * 3,
+        });
+      }
+    }
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(r);
+
+    // flamme principale (derrière la fusée), longueur qui vacille
+    const flameLen = drawH * (0.55 + Math.random() * 0.3 + Math.min(0.6, Math.log(multiplier) * 0.18));
+    const fw = drawW * 0.42;
+    ctx.globalCompositeOperation = 'lighter';
+    let g = ctx.createLinearGradient(0, tailY, 0, tailY + flameLen);
+    g.addColorStop(0, 'rgba(255, 250, 220, 0.95)');
+    g.addColorStop(0.25, 'rgba(255, 205, 80, 0.9)');
+    g.addColorStop(0.6, 'rgba(255, 110, 30, 0.55)');
+    g.addColorStop(1, 'rgba(255, 60, 20, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-fw / 2, tailY);
+    ctx.quadraticCurveTo(-fw * 0.7, tailY + flameLen * 0.45, 0, tailY + flameLen);
+    ctx.quadraticCurveTo(fw * 0.7, tailY + flameLen * 0.45, fw / 2, tailY);
+    ctx.closePath();
+    ctx.fill();
+    // cœur bleu-blanc très chaud
+    const coreLen = flameLen * 0.42;
+    g = ctx.createLinearGradient(0, tailY, 0, tailY + coreLen);
+    g.addColorStop(0, 'rgba(220, 240, 255, 1)');
+    g.addColorStop(1, 'rgba(120, 180, 255, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-fw * 0.22, tailY);
+    ctx.quadraticCurveTo(-fw * 0.25, tailY + coreLen * 0.5, 0, tailY + coreLen);
+    ctx.quadraticCurveTo(fw * 0.25, tailY + coreLen * 0.5, fw * 0.22, tailY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    ctx.shadowColor = 'rgba(255, 170, 60, 0.8)';
+    ctx.shadowBlur = 16;
+    ctx.drawImage(rocketImg, -drawW / 2, offsetY, drawW, drawH);
+    ctx.restore();
+  }
+
+  function updateAndDrawParticles() {
+    const alive = [];
+    for (const p of particles) {
+      p.life += 1;
+      if (p.life >= p.max) continue;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= p.kind === 'spark' ? 0.95 : 0.93;
+      p.vy = p.vy * (p.kind === 'spark' ? 0.95 : 0.93) + (p.kind === 'spark' ? 0.12 : -0.02);
+      alive.push(p);
+    }
+    particles = alive.slice(-420);
+
+    ctx.save();
+    for (const p of particles) {
+      const k = p.life / p.max; // 0 -> 1
+      if (p.kind === 'smoke') {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = `rgba(190, 180, 170, ${0.22 * (1 - k)})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * (1 + k * 2.5), 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.globalCompositeOperation = 'lighter';
+        const gch = Math.round(230 - k * 170);
+        ctx.fillStyle = `rgba(255, ${gch}, ${Math.round(80 - k * 60)}, ${0.85 * (1 - k)})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * (1 - k * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  /* ---------------- Étoiles (fond qui défile) ---------------- */
+  function drawStars(width, height) {
+    if (stars.length === 0 || stars.w !== width || stars.h !== height) {
+      stars = [];
+      for (let i = 0; i < 70; i++) {
+        stars.push({ x: Math.random() * width, y: Math.random() * height, s: 0.4 + Math.random() * 1.4, a: 0.25 + Math.random() * 0.6 });
+      }
+      stars.w = width;
+      stars.h = height;
+    }
+    // plus le multiplicateur est haut, plus les étoiles filent vite
+    const speed = phase === 'running' ? 0.4 + Math.log(multiplier) * 2.6 : 0.05;
+    for (const st of stars) {
+      st.x -= speed * 0.8 * st.s;
+      st.y += speed * 0.55 * st.s;
+      if (st.x < 0) st.x += width;
+      if (st.y > height) st.y -= height;
+      ctx.fillStyle = `rgba(243, 233, 210, ${st.a})`;
+      const len = Math.min(14, speed * st.s * 1.4);
+      if (len > 1.5) {
+        ctx.strokeStyle = ctx.fillStyle;
+        ctx.lineWidth = st.s;
+        ctx.beginPath();
+        ctx.moveTo(st.x, st.y);
+        ctx.lineTo(st.x + len * 0.8, st.y - len * 0.55);
+        ctx.stroke();
+      } else {
+        ctx.fillRect(st.x, st.y, st.s, st.s);
+      }
+    }
+  }
+
+  /* ---------------- Explosion (crash) ---------------- */
+  function spawnExplosion(x, y) {
+    explosionStart = performance.now();
+    shakeBoost = 16;
+    for (let i = 0; i < 70; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 2 + Math.random() * 7;
+      particles.push({ kind: 'spark', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: 30 + Math.random() * 30, size: 2 + Math.random() * 3 });
+    }
+    for (let i = 0; i < 24; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 0.5 + Math.random() * 2;
+      particles.push({ kind: 'smoke', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: 60 + Math.random() * 30, size: 6 + Math.random() * 6 });
+    }
+  }
+
+  function drawExplosion(x, y) {
+    const age = (performance.now() - explosionStart) / 1000;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    if (age < 0.25) {
+      const flash = ctx.createRadialGradient(x, y, 0, x, y, 90);
+      flash.addColorStop(0, `rgba(255, 255, 230, ${0.9 * (1 - age / 0.25)})`);
+      flash.addColorStop(1, 'rgba(255, 140, 40, 0)');
+      ctx.fillStyle = flash;
+      ctx.beginPath();
+      ctx.arc(x, y, 90, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const ringAlpha = Math.max(0, 1 - age * 1.6);
+    if (ringAlpha > 0) {
+      ctx.strokeStyle = `rgba(255, 150, 60, ${ringAlpha})`;
+      ctx.lineWidth = 4 * ringAlpha + 1;
+      ctx.beginPath();
+      ctx.arc(x, y, 12 + age * 170, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function explosionLoop() {
+    drawCurve();
+    applyShake();
+    if (performance.now() - explosionStart < 1600) {
+      explosionRaf = requestAnimationFrame(explosionLoop);
+    } else {
+      explosionRaf = null;
+      resetShake();
+    }
+  }
+
+  /* ---------------- Secousses ---------------- */
+  function applyShake() {
+    const el = document.querySelector('.fs-display');
+    if (!el) return;
+    const climb = phase === 'running' ? Math.min(7, 0.9 * Math.pow(Math.max(0, multiplier - 1), 0.75)) : 0;
+    const amp = climb + shakeBoost;
+    shakeBoost *= 0.9;
+    if (amp < 0.15) {
+      el.style.transform = '';
+      return;
+    }
+    const dx = (Math.random() - 0.5) * amp;
+    const dy = (Math.random() - 0.5) * amp;
+    const rot = (Math.random() - 0.5) * amp * 0.06;
+    el.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) rotate(${rot.toFixed(3)}deg)`;
+  }
+
+  function resetShake() {
+    shakeBoost = 0;
+    const el = document.querySelector('.fs-display');
+    if (el) el.style.transform = '';
   }
 
   function updateMultiplierDisplay() {
@@ -329,6 +547,10 @@ const Fusee = (() => {
     const displayEl = document.getElementById('fs-multiplier-display');
     if (!valueEl || !displayEl) return;
     valueEl.textContent = multiplier.toFixed(2);
+    // le compteur "chauffe" : crème -> or -> orange -> rouge selon la hauteur
+    const heat = Math.min(1, Math.log(multiplier) / Math.log(20));
+    valueEl.style.color = phase === 'crashed' ? '' : `hsl(${Math.round(48 - heat * 40)}, ${Math.round(40 + heat * 60)}%, ${Math.round(88 - heat * 30)}%)`;
+    valueEl.style.textShadow = phase === 'running' && heat > 0.2 ? `0 0 ${Math.round(heat * 24)}px rgba(255, 120, 40, ${heat})` : '';
     displayEl.classList.toggle('fs-crashed', phase === 'crashed');
   }
 
@@ -359,7 +581,7 @@ const Fusee = (() => {
 
   function buildChipsHTML() {
     return CHIP_DEFS.map((def, i) => {
-      const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise : ${fmt(chipAmount(def))} 🪙"` : '';
+      const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise : ${fmt(chipAmount(def))} jetons"` : '';
       return `<button type="button" class="fs-chip" data-chip-index="${i}"${tooltip}>${def.label}</button>`;
     }).join('');
   }
@@ -370,7 +592,7 @@ const Fusee = (() => {
     document.querySelectorAll('.fs-chip[data-chip-index]').forEach((btn) => {
       const def = CHIP_DEFS[Number(btn.dataset.chipIndex)];
       if (def && def.type === 'fraction') {
-        btn.dataset.tooltip = `Mise : ${fmt(chipAmount(def))} 🪙`;
+        btn.dataset.tooltip = `Mise : ${fmt(chipAmount(def))} jetons`;
       }
     });
   }
@@ -381,15 +603,18 @@ const Fusee = (() => {
     const amount = chipAmount(def);
     if (amount <= 0 || !Wallet.canAfford(bet + amount)) {
       setMessage('Solde insuffisant pour ce jeton.', 'fs-msg-warn');
+      Sfx.denied();
       return;
     }
     bet += amount;
+    Sfx.chip();
     updateBetDisplay();
-    setMessage(`Mise : ${fmt(bet)} 🪙. Cliquez sur LANCER quand vous êtes prêt.`);
+    setMessage(`Mise : ${fmt(bet)} jetons. Cliquez sur LANCER quand vous êtes prêt.`);
   }
 
   function clearBet() {
     if (inRound) return;
+    if (bet > 0) Sfx.chipsSweep();
     bet = 0;
     updateBetDisplay();
     setMessage('Mise effacée. Choisissez vos jetons.');
@@ -402,8 +627,9 @@ const Fusee = (() => {
       return;
     }
     bet = lastBet;
+    Sfx.chipStack();
     updateBetDisplay();
-    setMessage(`Mise : ${fmt(bet)} 🪙. Cliquez sur LANCER.`);
+    setMessage(`Mise : ${fmt(bet)} jetons. Cliquez sur LANCER.`);
   }
 
   function toggleBetControls(showBetting) {
@@ -429,13 +655,20 @@ const Fusee = (() => {
     }
     Wallet.subtract(bet);
     lastBet = bet;
+    Sfx.ignition();
+    if (window.Stats) Stats.round();
+    engineSound = Sfx.engine();
+    milestoneIdx = 0;
     inRound = true;
     cashedOut = false;
     toggleBetControls(false);
     document.getElementById('fs-cashout-btn').disabled = false;
 
+    // Encaissement auto : champ vide = désactivé (encaissement manuel uniquement)
     const targetInput = document.getElementById('fs-target-input');
-    cashoutTarget = Math.max(1.01, parseFloat(targetInput.value) || 2);
+    const typed = parseFloat(String(targetInput.value).replace(',', '.'));
+    cashoutTarget = Number.isFinite(typed) && typed >= 1.01 ? typed : Infinity;
+    if (cashoutTarget === Infinity) targetInput.value = '';
 
     multiplier = 1.00;
     elapsedTime = 0;
@@ -445,9 +678,18 @@ const Fusee = (() => {
     cashoutMultiplier = null;
     cashoutElapsedTime = null;
     resetScale();
+    particles = [];
+    hideMissed();
+    if (explosionRaf) cancelAnimationFrame(explosionRaf);
+    explosionRaf = null;
+    resetShake();
 
     updateStatus();
-    setMessage(`Envolée ! Encaissement auto à ${cashoutTarget.toFixed(2)}×, ou cliquez sur ENCAISSER.`);
+    setMessage(
+      cashoutTarget === Infinity
+        ? 'Envolée ! Cliquez sur ENCAISSER avant le crash.'
+        : `Envolée ! Encaissement auto à ${cashoutTarget.toFixed(2)}×, ou cliquez sur ENCAISSER.`
+    );
     gameLoop();
   }
 
@@ -455,6 +697,12 @@ const Fusee = (() => {
     const elapsed = (Date.now() - startTime) / 1000;
     elapsedTime = elapsed;
     multiplier = Math.pow(Math.E, 0.1 * elapsed);
+
+    if (engineSound) engineSound.update(Math.min(multiplier, crashPoint));
+    while (milestoneIdx < MILESTONES.length && multiplier >= MILESTONES[milestoneIdx] && multiplier < crashPoint) {
+      Sfx.milestone(milestoneIdx);
+      milestoneIdx++;
+    }
 
     if (!cashedOut && cashoutTarget < crashPoint && multiplier >= cashoutTarget) {
       multiplier = cashoutTarget;
@@ -467,8 +715,13 @@ const Fusee = (() => {
     if (multiplier >= crashPoint) {
       multiplier = crashPoint;
       phase = 'crashed';
+      if (engineSound) engineSound.stop();
+      engineSound = null;
+      Sfx.explosion();
+      if (!cashedOut) setTimeout(() => Sfx.lose(), 700);
       updateMultiplierDisplay();
-      drawCurve();
+      spawnExplosion(tip ? tip.x : 0, tip ? tip.y : 0);
+      explosionLoop(); // explosion + grosse secousse pendant ~1,6 s
       updateStatus();
       crash();
       return;
@@ -476,6 +729,8 @@ const Fusee = (() => {
 
     updateMultiplierDisplay();
     drawCurve();
+    applyShake(); // l'écran tremble de plus en plus à mesure que ça monte
+    if (cashedOut) updateMissed(false);
     animationFrame = requestAnimationFrame(gameLoop);
   }
 
@@ -490,6 +745,10 @@ const Fusee = (() => {
     const payout = Math.round(bet * multiplier);
     const profit = payout - bet;
     Wallet.add(payout);
+    Sfx.cashRegister();
+    Sfx.winFor(payout, bet);
+    if (window.Stats) Stats.best(multiplier);
+    if (engineSound) engineSound.setVolume(0.35); // la fusée continue, plus en retrait
 
     history.unshift({ mult: multiplier, win: true });
     history = history.slice(0, 12);
@@ -497,7 +756,7 @@ const Fusee = (() => {
 
     setMessage(
       (auto ? `Encaissement automatique à ${multiplier.toFixed(2)}× ! ` : `Encaissé à ${multiplier.toFixed(2)}× ! `) +
-        `Vous gagnez ${fmt(payout)} 🪙 (profit ${fmt(profit)} 🪙). La fusée continue son vol pour révéler la suite...`,
+        `Vous gagnez ${fmt(payout)} jetons (profit ${fmt(profit)}). La fusée continue son vol pour révéler la suite...`,
       'fs-msg-good'
     );
 
@@ -519,15 +778,45 @@ const Fusee = (() => {
       history.unshift({ mult: multiplier, win: false });
       history = history.slice(0, 12);
       renderHistory();
-      setMessage(`Crash à ${multiplier.toFixed(2)}×. Vous perdez ${fmt(bet)} 🪙.`, 'fs-msg-bad');
+      setMessage(`Crash à ${multiplier.toFixed(2)}×. Vous perdez ${fmt(bet)} jetons.`, 'fs-msg-bad');
     } else {
+      const could = Math.round(bet * multiplier);
+      const got = Math.round(bet * cashoutMultiplier);
       setMessage(
-        `La fusée s'est écrasée à ${multiplier.toFixed(2)}× — vous aviez encaissé à ${cashoutMultiplier.toFixed(2)}× !`,
+        could > got
+          ? `Crash à ${multiplier.toFixed(2)}× : en restant jusqu'au bout vous auriez gagné ${fmt(could)} jetons au lieu de ${fmt(got)}… mais personne ne sait quand elle explose !`
+          : `La fusée s'est écrasée à ${multiplier.toFixed(2)}× — encaissé juste à temps !`,
         'fs-msg-good'
       );
+      updateMissed(true);
     }
 
     endRound();
+  }
+
+  /* ---------------- Gain manqué (après encaissement) ----------------
+     Une fois encaissé, la fusée continue de monter : on affiche en direct
+     ce que le joueur aurait gagné s'il était resté, puis le bilan au crash. */
+  function updateMissed(final) {
+    const el = document.getElementById('fs-missed');
+    if (!el || !cashedOut || cashoutMultiplier == null) return;
+    const got = Math.round(bet * cashoutMultiplier);
+    const could = Math.round(bet * multiplier);
+    const diff = could - got;
+    el.classList.remove('fs-hidden');
+    el.classList.toggle('fs-missed-final', !!final);
+    if (final) {
+      el.innerHTML = diff > 0
+        ? `Encaissé <b>${fmt(got)}</b> à ${cashoutMultiplier.toFixed(2)}× · max possible <b>${fmt(could)}</b> à ${multiplier.toFixed(2)}× <span class="fs-missed-diff">(+${fmt(diff)})</span>`
+        : `Encaissé pile au bon moment : <b>${fmt(got)}</b>`;
+    } else {
+      el.innerHTML = `Si vous étiez resté : <b>${fmt(could)}</b> <span class="fs-missed-diff">+${fmt(diff)}</span>`;
+    }
+  }
+
+  function hideMissed() {
+    const el = document.getElementById('fs-missed');
+    if (el) el.classList.add('fs-hidden');
   }
 
   function endRound() {
@@ -557,17 +846,18 @@ const Fusee = (() => {
             <span class="fs-multiplier-value" id="fs-multiplier-value">1.00</span><span class="fs-multiplier-x">×</span>
           </div>
           <div class="fs-status fs-hidden" id="fs-status"><span class="fs-status-text" id="fs-status-text"></span></div>
+          <div class="fs-missed fs-hidden" id="fs-missed"></div>
         </div>
 
         <div class="fs-side-panel">
           <p id="fs-message" class="game-msg">Placez votre mise, puis lancez la fusée.</p>
-          <div class="fs-total-bet">Mise : <span id="fs-bet-amount">0</span> 🪙</div>
+          <div class="fs-total-bet">Mise : <span id="fs-bet-amount">0</span> <span class="coin-icon" aria-hidden="true"></span></div>
           <div class="fs-chip-row" id="fs-chip-row">${buildChipsHTML()}</div>
 
           <div class="fs-target-group">
             <span class="fs-target-label">Encaissement auto à</span>
             <div class="fs-target-wrapper">
-              <input type="text" class="fs-target-input" id="fs-target-input" value="2.00">
+              <input type="text" inputmode="decimal" class="fs-target-input" id="fs-target-input" value="" placeholder="Aucun (manuel)">
               <div class="fs-target-controls">
                 <button type="button" class="fs-target-btn" id="fs-target-up">▲</button>
                 <button type="button" class="fs-target-btn" id="fs-target-down">▼</button>
@@ -609,11 +899,15 @@ const Fusee = (() => {
 
     container.querySelector('#fs-target-up').addEventListener('click', () => {
       const input = document.getElementById('fs-target-input');
-      input.value = ((parseFloat(input.value) || 2) + 0.1).toFixed(2);
+      const v = parseFloat(input.value);
+      input.value = Number.isFinite(v) ? (v + 0.1).toFixed(2) : '1.50'; // champ vide -> 1.50
     });
     container.querySelector('#fs-target-down').addEventListener('click', () => {
       const input = document.getElementById('fs-target-input');
-      input.value = Math.max(1.01, (parseFloat(input.value) || 2) - 0.1).toFixed(2);
+      const v = parseFloat(input.value);
+      if (!Number.isFinite(v)) return; // déjà en manuel
+      // sous 1.01 on repasse en manuel (champ vide)
+      input.value = v - 0.1 < 1.01 ? '' : (v - 0.1).toFixed(2);
     });
 
     window.addEventListener('resize', () => {

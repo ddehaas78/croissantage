@@ -25,6 +25,8 @@ const Mines = (() => {
   ];
 
   let selectedChipIndex = 1; // '50' par défaut
+  let stake = 0; // mise composée en cliquant sur les jetons (100 ×3 = 300)
+  let lastStake = 0;
   let lastChipIndex = null; // dernier jeton utilisé, pour "Même mise"
   let minesCount = DEFAULT_MINES;
   let bet = 0;
@@ -34,24 +36,32 @@ const Mines = (() => {
   let gameOverState = null; // 'win' | 'loss' | null
   let built = false;
 
+  // Images (assets/misc/arcade/mine/)
+  const ASSET_PATH = '../../../assets/misc/arcade/mine/';
+  const IMG_GEM = `<img class="mn-tile-img" src="${ASSET_PATH}diamant.svg" alt="Diamant" draggable="false">`;
+  const IMG_BOMB = `<img class="mn-tile-img" src="${ASSET_PATH}bombe.svg" alt="Mine" draggable="false">`;
+  const IMG_BOOM = `<img class="mn-tile-boom" src="${ASSET_PATH}explosion.svg" alt="" draggable="false">`;
+
   function fmt(n) {
     return Math.round(n).toLocaleString('fr-FR');
   }
 
   /* ---------------- Jetons ---------------- */
+  // Montant d'un jeton. Les jetons "fraction" (1/4, 1/2, ALL) se calculent
+  // sur ce qui reste disponible (solde - mise déjà composée).
   function chipAmount(def) {
     if (def.type === 'fixed') return def.value;
-    return Math.floor(Wallet.get() * def.fraction);
+    return Math.floor(Math.max(0, Wallet.get() - stake) * def.fraction);
   }
 
   function betAmount() {
-    return chipAmount(CHIP_DEFS[selectedChipIndex]);
+    return stake;
   }
 
   function buildChipsHTML() {
     return CHIP_DEFS.map((def, i) => {
-      const active = i === selectedChipIndex ? ' active' : '';
-      const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise : ${fmt(chipAmount(def))} 🪙"` : '';
+      const active = ''; // plus de jeton "sélectionné" : chaque clic ajoute
+      const tooltip = def.type === 'fraction' ? ` data-tooltip="Mise : ${fmt(chipAmount(def))} jetons"` : '';
       return `<button type="button" class="mn-chip${active}" data-chip-index="${i}"${tooltip}>${def.label}</button>`;
     }).join('');
   }
@@ -60,19 +70,42 @@ const Mines = (() => {
     document.querySelectorAll('.mn-chip[data-chip-index]').forEach((btn) => {
       const def = CHIP_DEFS[Number(btn.dataset.chipIndex)];
       if (def && def.type === 'fraction') {
-        btn.dataset.tooltip = `Mise : ${fmt(chipAmount(def))} 🪙`;
+        btn.dataset.tooltip = `Mise : ${fmt(chipAmount(def))} jetons`;
       }
     });
   }
 
+  // Chaque clic sur un jeton AJOUTE sa valeur à la mise (100 ×3 = 300)
   function selectChip(index) {
     if (playing) return;
-    selectedChipIndex = index;
-    document.querySelectorAll('.mn-chip').forEach((btn) => {
-      btn.classList.toggle('active', Number(btn.dataset.chipIndex) === index);
-    });
+    const amount = chipAmount(CHIP_DEFS[index]);
+    if (amount <= 0 || !Wallet.canAfford(stake + amount)) {
+      setMessage('Solde insuffisant pour ajouter ce jeton.', 'msg-warn');
+      Sfx.denied();
+      return;
+    }
+    stake += amount;
+    Sfx.chip();
+    const btn = document.querySelector(`.mn-chip[data-chip-index="${index}"]`);
+    if (btn) {
+      btn.classList.remove('chip-bump');
+      void btn.offsetWidth;
+      btn.classList.add('chip-bump');
+    }
     updateBetPreview();
     updateStartButton();
+    updateMultiplierDisplay();
+    setMessage(`Mise : ${fmt(stake)} jetons. Cliquez encore pour ajouter.`);
+  }
+
+  function clearStake() {
+    if (playing || stake === 0) return;
+    stake = 0;
+    Sfx.chipsSweep();
+    updateBetPreview();
+    updateStartButton();
+    updateMultiplierDisplay();
+    setMessage('Mise effacée. Cliquez sur les jetons pour composer votre mise.');
   }
 
   /* ---------------- Multiplicateur (formule Mines classique) ---------------- */
@@ -105,6 +138,7 @@ const Mines = (() => {
   function adjustMines(delta) {
     if (playing) return;
     minesCount = Math.min(MAX_MINES, Math.max(MIN_MINES, minesCount + delta));
+    Sfx.click();
     updateMinesDisplay();
     updateMultiplierDisplay();
   }
@@ -127,7 +161,7 @@ const Mines = (() => {
     const multEl = document.getElementById('mn-mult');
     const potEl = document.getElementById('mn-potential');
     if (multEl) multEl.textContent = currentMultiplier().toFixed(2) + '×';
-    if (potEl) potEl.textContent = fmt(playing ? potentialWin() : betAmount()) + ' 🪙';
+    if (potEl) potEl.innerHTML = fmt(playing ? potentialWin() : betAmount()) + ' <span class="coin-icon" aria-hidden="true"></span>';
   }
 
   function updateStartButton() {
@@ -140,8 +174,7 @@ const Mines = (() => {
   function updateRepeatButton() {
     const btn = document.getElementById('mn-repeat-btn');
     if (!btn) return;
-    const amount = lastChipIndex === null ? 0 : chipAmount(CHIP_DEFS[lastChipIndex]);
-    btn.disabled = playing || lastChipIndex === null || amount <= 0 || !Wallet.canAfford(amount);
+    btn.disabled = playing || lastStake <= 0 || !Wallet.canAfford(lastStake);
   }
 
   function updateCashoutButton() {
@@ -157,7 +190,7 @@ const Mines = (() => {
     if (betActions) betActions.style.display = showBetting ? 'flex' : 'none';
     if (playActions) playActions.style.display = showBetting ? 'none' : 'flex';
     if (newGameBtn) newGameBtn.hidden = true;
-    document.querySelectorAll('.mn-chip').forEach((c) => (c.disabled = !showBetting));
+    document.querySelectorAll('.mn-chip, #mn-stake-clear').forEach((c) => (c.disabled = !showBetting));
     document.querySelectorAll('.mn-mines-btn').forEach((c) => (c.disabled = !showBetting));
   }
 
@@ -167,11 +200,12 @@ const Mines = (() => {
     const isRevealed = revealed.includes(index);
 
     if (isRevealed) {
-      return isMine ? '💣' : '💎';
+      // la mine qui a sauté : explosion derrière la bombe
+      return isMine ? IMG_BOOM + IMG_BOMB : IMG_GEM;
     }
     if (forceReveal) {
       // Fin de manche : on montre le reste de la grille en estompé
-      return isMine ? '💣' : '💎';
+      return isMine ? IMG_BOMB : IMG_GEM;
     }
     return '';
   }
@@ -202,7 +236,7 @@ const Mines = (() => {
     document.querySelectorAll('.mn-tile').forEach((btn) => {
       const i = Number(btn.dataset.index);
       btn.className = tileClass(i, forceReveal);
-      btn.textContent = tileContent(i, forceReveal);
+      btn.innerHTML = tileContent(i, forceReveal);
     });
   }
 
@@ -225,11 +259,14 @@ const Mines = (() => {
     }
     if (!Wallet.canAfford(amount)) {
       setMessage('Solde insuffisant pour cette mise.', 'msg-warn');
+      Sfx.denied();
       return;
     }
     Wallet.subtract(amount);
+    Sfx.arm();
+    if (window.Stats) Stats.round();
 
-    lastChipIndex = selectedChipIndex;
+    lastStake = stake;
     bet = amount;
     mineLocations = generateMines();
     revealed = [];
@@ -241,12 +278,12 @@ const Mines = (() => {
     updateMultiplierDisplay();
     updateCashoutButton();
     renderGrid();
-    setMessage(`Mise en jeu : ${fmt(bet)} 🪙. Choisissez une case.`);
+    setMessage(`Mise en jeu : ${fmt(bet)} jetons. Choisissez une case.`);
   }
 
   function repeatBet() {
-    if (playing || lastChipIndex === null) return;
-    selectChip(lastChipIndex);
+    if (playing || lastStake <= 0) return;
+    stake = lastStake;
     startGame();
   }
 
@@ -255,11 +292,13 @@ const Mines = (() => {
 
     if (mineLocations.includes(index)) {
       revealed.push(index);
+      Sfx.explosion();
       endGame('loss');
       return;
     }
 
     revealed.push(index);
+    Sfx.gem(revealed.length); // plus la série est longue, plus c'est aigu
     renderGrid();
     updateMultiplierDisplay();
     updateCashoutButton();
@@ -270,7 +309,7 @@ const Mines = (() => {
       return;
     }
 
-    setMessage(`💎 Case sûre ! Multiplicateur : ${currentMultiplier().toFixed(2)}×.`);
+    setMessage(`Case sûre ! Multiplicateur : ${currentMultiplier().toFixed(2)}×.`);
   }
 
   function pickRandomTile() {
@@ -297,9 +336,12 @@ const Mines = (() => {
       const payout = Math.round(potentialWin());
       const profit = payout - bet;
       Wallet.add(payout);
-      setMessage(`🎉 Encaissé ${fmt(payout)} 🪙 à ${currentMultiplier().toFixed(2)}× (profit ${fmt(profit)} 🪙).`, 'msg-good');
+      Sfx.cashRegister();
+      Sfx.winFor(payout, bet);
+      if (window.Stats) Stats.best(currentMultiplier());
+      setMessage(`Encaissé ${fmt(payout)} jetons à ${currentMultiplier().toFixed(2)}× (profit ${fmt(profit)}).`, 'msg-good');
     } else {
-      setMessage(`💥 Boum ! Vous perdez ${fmt(bet)} 🪙.`, 'msg-bad');
+      setMessage(`Boum ! Vous perdez ${fmt(bet)} jetons.`, 'msg-bad');
     }
 
     renderGrid();
@@ -343,7 +385,7 @@ const Mines = (() => {
             </div>
             <div class="mn-stat">
               <span class="mn-stat-label">Gain potentiel</span>
-              <span class="mn-stat-value" id="mn-potential">0 🪙</span>
+              <span class="mn-stat-value" id="mn-potential">0</span>
             </div>
           </div>
           <div class="mn-grid" id="mn-grid">${buildGridHTML()}</div>
@@ -352,7 +394,7 @@ const Mines = (() => {
         <div class="mn-side-panel">
           <div class="mn-bet-panel">
             <p id="mn-message" class="game-msg mn-message">Choisissez votre mise et le nombre de mines.</p>
-            <div class="mn-total-bet">Mise : <span id="mn-bet-amount">0</span> 🪙</div>
+            <div class="mn-total-bet">Mise : <span id="mn-bet-amount">0</span> <span class="coin-icon" aria-hidden="true"></span><button type="button" class="stake-clear" id="mn-stake-clear">Effacer</button></div>
             <div class="mn-chip-row" id="mn-chip-row">${buildChipsHTML()}</div>
           </div>
 
@@ -389,6 +431,7 @@ const Mines = (() => {
     container.querySelectorAll('.mn-chip').forEach((btn) => {
       btn.addEventListener('click', () => selectChip(Number(btn.dataset.chipIndex)));
     });
+    container.querySelector('#mn-stake-clear').addEventListener('click', clearStake);
 
     container.querySelectorAll('.mn-tile').forEach((btn) => {
       btn.addEventListener('click', () => handleTileClick(Number(btn.dataset.index)));

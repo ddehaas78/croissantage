@@ -217,7 +217,13 @@ const tileTypes = {
   [DECO.TREE]:     { collide: true, kind: "deco", image: DECO_IMAGES.plant },
   [DECO.LAMP]:     { collide: true, kind: "deco", icon: "💡" },
   [DECO.FOUNTAIN]: { collide: true, kind: "deco", icon: "⛲" },
-  [DECO.SLOT]:     { collide: true, kind: "deco", image: DECO_IMAGES.slot },
+  // Distributeurs (ATM) : on "entre" dedans en marchant contre, comme une
+  // maison, pour consulter ses statistiques (games/atm/atm.html).
+  [DECO.SLOT]:     {
+    collide: true, kind: "deco", image: DECO_IMAGES.slot, atm: true,
+    text: "Distributeur : vos statistiques",
+    effect: () => enterHouse("./games/atm/atm.html"),
+  },
 };
 function registerHouseTypes(house) {
   tileTypes[house.doorCode] = {
@@ -520,6 +526,7 @@ function move() {
   if (next.collide) {
     if (next.kind !== "wall") showText(next.text);
     instantStop();
+    if (next.atm && next.effect) next.effect(); // on entre dans le distributeur
     return;
   }
 
@@ -530,6 +537,7 @@ function move() {
 
   if (next.text) showText(next.text); else showText(null);
   if (next.effect) next.effect();
+  if (typeof checkPendingAtm === 'function') checkPendingAtm();
 
   control.lastMoving = control.moving;
 
@@ -786,10 +794,35 @@ document.getElementById('tileset').addEventListener('click', (e) => {
   activePath = null;
   pathGeneration++;
 
-  const path = pathFind.getPath(currPos, { x, y });
+  let dest = { x, y };
+  const clicked = getTile(x, y);
+  pendingAtm = null;
+  if (clicked && clicked.atm) {
+    // case libre juste en dessous du distributeur
+    dest = { x, y: y + 1 };
+    pendingAtm = { at: dest, effect: clicked.effect };
+    if (currPos.x === dest.x && currPos.y === dest.y) {
+      setSpriteDirection('up');
+      pendingAtm = null;
+      clicked.effect();
+      return;
+    }
+  }
+  const path = pathFind.getPath(currPos, dest);
   pathFind.drawPath(path);
   followPath(path);
 });
+
+// distributeur cliqué : on y entre dès qu'on arrive devant
+let pendingAtm = null;
+function checkPendingAtm() {
+  if (pendingAtm && currPos.x === pendingAtm.at.x && currPos.y === pendingAtm.at.y) {
+    const fx = pendingAtm.effect;
+    pendingAtm = null;
+    setSpriteDirection('up');
+    setTimeout(fx, delay);
+  }
+}
 
 window.addEventListener('pageshow', (event) => {
   if (event.persisted) {

@@ -4,14 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Poker - Casino</title>
-  <link rel="stylesheet" href="../../core/game-stub.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../core/main.css">
+  <link rel="stylesheet" href="../../core/game-page.css">
+  <link rel="stylesheet" href="../../core/drunk.css">
+  <link rel="stylesheet" href="poker.css">
 </head>
 <body>
-  <div class="house">
-    <div class="icon">♠️</div>
-    <h1>Poker</h1>
-    <p>La table attend ses joueurs... le jeu arrive bientôt ici.</p>
-    <a class="back" href="../../lobby.html">&larr; Retour au lobby</a>
+
+  <div class="game-topbar" data-topbar
+       data-title='<img class="title-icon" src="../../assets/misc/poker/cartes.svg" alt=""> Texas Hold&apos;em'></div>
+
+  <div id="poker">
+    <div class="game-body"></div>
   </div>
+
+  <script src="../../core/wallet.js"></script>
+  <script src="../../core/stats.js"></script>
+  <script src="../../core/topbar.js"></script>
+  <script src="../../core/drunk.js"></script>
+  <script src="../../core/skins.js"></script>
+  <script src="../../core/sfx.js"></script>
+  <script src="poker.js"></script>
 </body>
 </html>

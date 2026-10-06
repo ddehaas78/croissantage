@@ -177,6 +177,7 @@ const Wallet = (() => {
       return balance >= amount;
     },
     add(amount) {
+      if (window.Stats) Stats.money('in', amount); // statistiques (core/stats.js)
       balance += Math.max(0, Math.round(amount));
       persist();
       notify();
@@ -185,6 +186,7 @@ const Wallet = (() => {
     subtract(amount) {
       amount = Math.max(0, Math.round(amount));
       if (amount > balance) return false;
+      if (window.Stats) Stats.money('out', amount);
       balance -= amount;
       persist();
       notify();
@@ -192,6 +194,7 @@ const Wallet = (() => {
     },
     recharge() {
       if (balance >= RECHARGE_THRESHOLD) return false;
+      if (window.Stats) Stats.recharge(RECHARGE_TARGET - balance);
       balance = RECHARGE_TARGET;
       persist();
       notify();

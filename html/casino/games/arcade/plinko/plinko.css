@@ -334,3 +334,152 @@ html {
     flex: 1 1 30%;
   }
 }
+
+/* ================= Lumières façon vraie machine ================= */
+.pk-cabinet {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Enseigne néon */
+.pk-neon {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.9rem;
+  letter-spacing: 0.35em;
+  padding-left: 0.35em;
+  color: #fff4f6;
+  text-shadow:
+    0 0 4px #fff,
+    0 0 10px #ff4fa3,
+    0 0 22px #ff4fa3,
+    0 0 40px #ff2a7a;
+  animation: pkNeonFlicker 6s linear infinite;
+}
+@keyframes pkNeonFlicker {
+  0%, 18%, 22%, 62%, 64%, 100% { opacity: 1; }
+  20%, 63% { opacity: 0.45; }
+}
+
+/* Cadre de la rampe d'ampoules */
+.pk-marquee {
+  position: relative;
+  width: 100%;
+  padding: 18px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #2a0f06, #120603);
+  border: 2px solid var(--gold-dim);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7), 0 0 26px rgba(255, 79, 163, 0.18);
+  transition: box-shadow 0.3s ease;
+}
+.pk-bulbs {
+  position: absolute;
+  inset: 8px;
+  pointer-events: none;
+}
+.pk-bulb {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: #3a2a1a;
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.6);
+  /* chenillard : une ampoule sur trois allumée, le motif "avance" */
+  animation: pkChase 1.2s steps(1, end) infinite;
+  /* décalage d'un tiers de cycle par ampoule -> motif qui défile */
+  animation-delay: calc(var(--i) * -0.4s);
+}
+@keyframes pkChase {
+  0% { background: var(--c); box-shadow: 0 0 6px var(--c), 0 0 14px var(--c); }
+  33.33% { background: #3a2a1a; box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.6); }
+  100% { background: #3a2a1a; box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.6); }
+}
+
+/* Bille en jeu : chenillard rapide */
+.pk-live .pk-bulb { animation-duration: 0.45s; }
+.pk-live .pk-bulb { animation-delay: calc(var(--i) * -0.15s); }
+
+/* Gain >= 2x : toutes les ampoules clignotent ensemble */
+.pk-win .pk-bulb {
+  animation: pkBlinkAll 0.16s steps(1, end) infinite;
+  animation-delay: 0s;
+}
+@keyframes pkBlinkAll {
+  0% { background: var(--c); box-shadow: 0 0 8px var(--c), 0 0 18px var(--c); }
+  50% { background: #3a2a1a; box-shadow: none; }
+}
+
+/* Gain >= 10x : stroboscope arc-en-ciel + plateau qui flashe */
+.pk-jackpot .pk-bulb {
+  animation: pkBlinkAll 0.1s steps(1, end) infinite, pkRainbow 0.6s linear infinite;
+  animation-delay: 0s, calc(var(--i) * -0.02s);
+}
+@keyframes pkRainbow {
+  from { filter: hue-rotate(0deg) brightness(1.3); }
+  to { filter: hue-rotate(360deg) brightness(1.3); }
+}
+.pk-jackpot .pk-marquee {
+  animation: pkCabinetFlash 0.25s ease-in-out infinite alternate;
+}
+.pk-jackpot .pk-neon {
+  animation: pkNeonJackpot 0.12s steps(1, end) infinite;
+}
+@keyframes pkCabinetFlash {
+  from { box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 220, 90, 0.4); }
+  to { box-shadow: inset 0 0 30px rgba(255, 200, 80, 0.25), 0 0 60px rgba(255, 79, 163, 0.85); }
+}
+@keyframes pkNeonJackpot {
+  0% { color: #fff4f6; }
+  50% { color: #f4d976; text-shadow: 0 0 6px #fff, 0 0 18px #f4d976, 0 0 40px #ffb02e; }
+}
+.pk-win .pk-marquee {
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7), 0 0 40px rgba(244, 217, 118, 0.55);
+}
+
+/* Bacs : reflet lumineux, et les gros multiplicateurs "pulsent" en continu */
+.pk-bin { position: relative; overflow: hidden; }
+.pk-bin::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 55%);
+  pointer-events: none;
+}
+.pk-bin-hot {
+  animation: pkHotBin 1.1s ease-in-out infinite alternate;
+}
+@keyframes pkHotBin {
+  from { box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25), 0 0 4px var(--bin-color); }
+  to { box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25), 0 0 14px var(--bin-color), 0 0 24px var(--bin-color); }
+}
+.pk-bin-hit {
+  animation: pk-bin-hit 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28), pkBinFlash 0.6s ease-out;
+}
+@keyframes pkBinFlash {
+  0% { filter: brightness(2.2) saturate(1.4); box-shadow: 0 0 22px var(--bin-color), 0 0 40px var(--bin-color); }
+  100% { filter: brightness(1); }
+}
+
+/* Fond du plateau un peu plus "salle de jeu" */
+.pk-canvas {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 79, 163, 0.12), transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(244, 217, 118, 0.08), transparent 60%),
+    #120705;
+}
+
+@media (max-width: 600px) {
+  .pk-marquee { padding: 12px; }
+  .pk-bulb { width: 6px; height: 6px; margin: -3px 0 0 -3px; }
+  .pk-neon { font-size: 1.3rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pk-bulb, .pk-neon, .pk-marquee, .pk-bin-hot { animation: none !important; }
+}

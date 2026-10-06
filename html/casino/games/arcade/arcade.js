@@ -25,6 +25,7 @@ const Arcade = (() => {
       id: 'fusee',
       name: 'Fusée',
       icon: '🚀',
+      img: '../../assets/misc/arcade/fusee/fusee.png',
       tagline: 'Encaissez avant que la fusée n\'explose.',
       href: './fusee/fusee.html',
       ready: true,
@@ -33,15 +34,17 @@ const Arcade = (() => {
       id: 'mine',
       name: 'Mines',
       icon: '💣',
+      img: '../../assets/misc/arcade/mine/bombe.svg',
       tagline: 'Avancez case par case, évitez les mines.',
       href: './mine/mine.html',
       ready: true,
     },
     {
       id: 'chicken',
-      name: 'Chicken Road',
+      name: 'Chicken Grill',
       icon: '🐔',
-      tagline: 'Traversez la route, encaissez avant le crash.',
+      img: '../../assets/misc/arcade/chicken/poulet.svg', // image prioritaire sur l'emoji
+      tagline: 'Sautez de four en four, encaissez avant d\'être rôti.',
       href: './chicken/chicken.html',
       ready: true,
     },
@@ -49,6 +52,7 @@ const Arcade = (() => {
       id: 'plinko',
       name: 'Plinko',
       icon: '🔴',
+      img: '../../assets/misc/arcade/plinko/plinko.svg',
       tagline: 'Lâchez la balle, laissez la physique décider.',
       href: './plinko/plinko.html',
       ready: true,
@@ -57,9 +61,10 @@ const Arcade = (() => {
       id: 'craps',
       name: 'Craps',
       icon: '🎲',
+      img: '../../assets/misc/arcade/craps/des.svg',
       tagline: 'Le classique jeu de dés du casino.',
       href: './craps/craps.html',
-      ready: false,
+      ready: true,
     },
   ];
 
@@ -129,7 +134,7 @@ const Arcade = (() => {
 
   function coverFaceHTML(game, { withLock } = {}) {
     return `
-      <span class="ac-slot-icon">${game.icon}</span>
+      <span class="ac-slot-icon">${game.img ? `<img class="ac-slot-img" src="${game.img}" alt="" draggable="false">` : game.icon}</span>
       <span class="ac-slot-name">${game.name}</span>
       ${withLock && !game.ready ? '<span class="ac-slot-lock">Bientôt</span>' : ''}
     `;
@@ -193,6 +198,7 @@ const Arcade = (() => {
   function go(delta) {
     const prevCenter = center;
     center += delta;
+    Sfx.swipe();
     syncSlots(prevCenter);
     updateInfo();
   }
@@ -207,10 +213,13 @@ const Arcade = (() => {
   function playCurrent() {
     const game = currentGame();
     if (!game.ready) {
-      flashLocked(`${game.name} arrive bientôt 🔧`);
+      flashLocked(`${game.name} arrive bientôt`);
+      Sfx.denied();
       return;
     }
-    window.location.href = game.href;
+    Sfx.select();
+    // petit délai pour laisser le son de sélection se jouer avant de quitter la page
+    setTimeout(() => { window.location.href = game.href; }, 220);
   }
 
   function bindEvents(container) {

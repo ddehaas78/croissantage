@@ -434,3 +434,250 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ================= Caisses de personnages (façon CS) ================= */
+/* --rarity est injecté en inline par bar.js (couleur de la rareté) */
+
+.skin-thumb { position: relative; }
+.skin-thumb::before {
+  content: '';
+  position: absolute;
+  left: 8px; right: 8px; bottom: 0;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--rarity, transparent);
+  opacity: 0.85;
+}
+.skin-thumb.locked .skin-thumb-sprite { filter: brightness(0) opacity(0.55); }
+.skin-thumb.locked .skin-thumb-name { color: rgba(201, 191, 168, 0.5); }
+.skin-thumb.locked:hover { transform: none; border-color: transparent; cursor: not-allowed; }
+.skin-thumb-lock {
+  position: absolute;
+  top: 2px; right: 2px;
+  font-size: 0.6rem;
+}
+#bar-skin-count { color: var(--cream-dim); font-size: 0.7rem; }
+
+.bar-case {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(212, 175, 55, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Petite caisse dessinée en CSS */
+.bar-case-crate {
+  width: 74px;
+  height: 52px;
+  border-radius: 8px;
+  border: 2px solid var(--gold-dim);
+  background:
+    linear-gradient(90deg, transparent 46%, var(--gold) 46% 54%, transparent 54%),
+    linear-gradient(180deg, transparent 30%, rgba(0,0,0,.35) 30% 34%, transparent 34%),
+    linear-gradient(160deg, #5a3a1c, #2e1c0c);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), 0 0 18px rgba(212, 175, 55, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: barCaseFloat 2.6s ease-in-out infinite;
+}
+.bar-case-crate span {
+  font-size: 1.2rem;
+  filter: drop-shadow(0 0 6px rgba(244, 217, 118, 0.7));
+}
+@keyframes barCaseFloat {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-4px) rotate(1.5deg); }
+}
+
+/* Action principale : dégradé doré */
+.bar-case-btn {
+  width: 100%;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+  padding: 11px 14px;
+  border-radius: 10px;
+  color: #241a08;
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold) 60%, var(--gold-dim));
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.bar-case-btn:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+.bar-case-btn:disabled { filter: grayscale(0.6) brightness(0.7); cursor: not-allowed; box-shadow: none; }
+
+.bar-case-odds-toggle {
+  font-size: 0.7rem;
+  color: var(--cream-dim);
+  text-decoration: underline dotted;
+}
+.bar-case-odds-toggle:hover { color: var(--gold-bright); }
+
+.bar-case-odds { width: 100%; }
+.bar-case-odds-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bar-case-odds-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 3px solid var(--rarity);
+  font-size: 0.72rem;
+}
+.bar-case-odds-name { color: var(--rarity); font-weight: 600; }
+.bar-case-odds-pct { color: var(--cream); font-family: var(--font-display); font-weight: 700; }
+.bar-case-odds-who { grid-column: 1 / -1; color: var(--cream-dim); font-size: 0.62rem; }
+.bar-case-odds-note {
+  margin-top: 8px;
+  font-size: 0.66rem;
+  line-height: 1.45;
+  color: var(--cream-dim);
+  text-align: center;
+}
+.bar-case-odds-note strong { color: var(--gold-bright); }
+
+/* --- Fenêtre d'ouverture --- */
+.bar-case-modal {
+  width: min(760px, 94vw);
+  max-width: 94vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  border: 2px solid var(--gold);
+  background: linear-gradient(160deg, #3a1608, #1c0a04);
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.25), 0 20px 60px var(--shadow);
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+}
+.bar-case-modal.revealed {
+  border-color: var(--rarity);
+  box-shadow: 0 0 40px var(--rarity), 0 20px 60px var(--shadow);
+}
+.bar-case-modal-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.2rem;
+  color: var(--gold-bright);
+  letter-spacing: 0.06em;
+}
+
+.bar-case-reel {
+  --card-w: 120px;
+  position: relative;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(0, 0, 0, 0.45);
+  /* fondu sur les bords, comme dans CS */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.bar-case-track {
+  display: flex;
+  gap: 8px;
+  padding: 14px 0;
+  height: 100%;
+  will-change: transform;
+}
+.bar-case-marker {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  background: var(--gold-bright);
+  box-shadow: 0 0 10px var(--gold-bright);
+  pointer-events: none;
+}
+.bar-case-marker::before,
+.bar-case-marker::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+}
+.bar-case-marker::before { top: 0; border-top-color: var(--gold-bright); }
+.bar-case-marker::after { bottom: 0; border-bottom-color: var(--gold-bright); }
+
+.bar-case-card {
+  flex: 0 0 var(--card-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 6px 4px 8px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(0, 0, 0, 0.2) 55%, var(--rarity) 300%);
+  border-bottom: 4px solid var(--rarity);
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+.bar-case-card-sprite {
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+  background-repeat: no-repeat;
+  background-size: 256px 256px;
+  background-position: -64px 0; /* idle, face caméra */
+}
+.bar-case-card-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--cream);
+  white-space: nowrap;
+}
+.bar-case-card-rarity {
+  font-size: 0.58rem;
+  color: var(--rarity);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.bar-case-card.revealed {
+  transform: scale(1.08);
+  box-shadow: 0 0 22px var(--rarity), inset 0 0 18px var(--rarity);
+  position: relative;
+  z-index: 1;
+}
+
+.bar-case-result { min-height: 24px; font-size: 0.95rem; }
+
+.bar-case-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.bar-case-actions .bar-case-btn { width: auto; padding: 10px 22px; }
+.bar-case-again,
+.bar-case-close {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+  padding: 10px 20px;
+  border-radius: 10px;
+  color: var(--cream);
+  border: 1px solid var(--gold-dim);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.bar-case-again:hover,
+.bar-case-close:hover { border-color: var(--gold-bright); color: var(--gold-bright); }
+
+@media (max-width: 480px) {
+  .bar-case-reel { --card-w: 92px; height: 132px; }
+  .bar-case-card-sprite { transform: scale(0.8); }
+  .bar-case-modal { padding: 18px 12px; }
+}

@@ -98,6 +98,7 @@ const Plinko = (() => {
   let ballId = 0;
   let rafId = null;
   let pinFlashes = new Map(); // pinId -> frames restantes
+  let lightsTimer = null; // fin du mode "victoire" des ampoules
 
   function fmt(n) {
     return Math.round(n).toLocaleString('fr-FR');
@@ -109,6 +110,7 @@ const Plinko = (() => {
   }
 
   function setRows(n) {
+    Sfx.click();
     if (balls.length > 0) return;
     rows = n;
     rebuildBoard();
@@ -117,6 +119,7 @@ const Plinko = (() => {
   }
 
   function setRisk(r) {
+    Sfx.click();
     if (balls.length > 0) return;
     risk = r;
     renderBins();
@@ -235,7 +238,8 @@ const Plinko = (() => {
     row.style.width = `${binsWidthPercentage * 100}%`;
     row.innerHTML = table.map((mult, i) => {
       const label = mult >= 10 ? `${Math.round(mult)}×` : `${mult.toFixed(1)}×`;
-      return `<div class="pk-bin" id="pk-bin-${i}" style="background:${binColor(mult)}">${label}</div>`;
+      const hot = mult >= 10 ? ' pk-bin-hot' : '';
+      return `<div class="pk-bin${hot}" id="pk-bin-${i}" style="background:${binColor(mult)}; --bin-color:${binColor(mult)}">${label}</div>`;
     }).join('');
   }
 
@@ -256,9 +260,22 @@ const Plinko = (() => {
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
       if (flashFrames > 0) {
-        ctx.fillStyle = '#6fe3bd';
-        ctx.shadowColor = 'rgba(111, 227, 189, 0.9)';
-        ctx.shadowBlur = 10;
+        // la cheville touchée s'allume dans une couleur qui dépend de sa
+        // hauteur (arc-en-ciel du haut vers le bas), comme les LED d'une machine
+        const hue = Math.round((p.y / HEIGHT) * 300 + 20) % 360;
+        ctx.fillStyle = `hsl(${hue}, 100%, 70%)`;
+        ctx.shadowColor = `hsla(${hue}, 100%, 60%, 1)`;
+        ctx.shadowBlur = 18;
+        ctx.fill();
+        // onde lumineuse qui s'élargit autour de la cheville
+        const k = 1 - flashFrames / 12;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius + 2 + k * 10, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${hue}, 100%, 65%, ${0.8 * (1 - k)})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
       } else {
         ctx.fillStyle = '#f4d976';
         ctx.shadowColor = 'rgba(212,175,55,0.55)';
@@ -269,6 +286,21 @@ const Plinko = (() => {
     ctx.shadowBlur = 0;
 
     for (const ball of balls) {
+      // traînée lumineuse (dernières positions)
+      ball.trail = ball.trail || [];
+      ball.trail.push({ x: ball.x, y: ball.y });
+      if (ball.trail.length > 10) ball.trail.shift();
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ball.trail.forEach((pt, i) => {
+        const a = (i + 1) / ball.trail.length;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, ball.radius * (0.4 + a * 0.6), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 140, 70, ${0.18 * a})`;
+        ctx.fill();
+      });
+      ctx.restore();
+
       const grad = ctx.createRadialGradient(ball.x - 2, ball.y - 3, 1, ball.x, ball.y, ball.radius);
       grad.addColorStop(0, '#fff6d8');
       grad.addColorStop(1, '#e0684a');
@@ -316,6 +348,8 @@ const Plinko = (() => {
         ball.x += Math.cos(angle) * overlap;
         ball.y += Math.sin(angle) * overlap;
 
+        // son seulement au PREMIER contact (le flash vaut 12 tant que la bille touche)
+        if (!(pinFlashes.get(p.id) >= 10)) Sfx.peg(p.y / HEIGHT);
         pinFlashes.set(p.id, 12);
       }
     }
@@ -350,9 +384,56 @@ const Plinko = (() => {
     const payout = Math.round(ball.bet * mult);
     Wallet.add(payout);
     flashBin(index);
+    Sfx.plinkoLand(mult);
+    celebrate(mult);
+    if (window.Stats) Stats.best(mult);
     pushLog(mult, payout, ball.bet);
     renderSettings();
     updateBetButtonsState();
+  }
+
+  /* ---------------- Lumières de la machine ---------------- */
+  // Rampe d'ampoules autour du plateau. Modes (classes sur .pk-cabinet) :
+  //  - repos : chenillard lent
+  //  - pk-live : chenillard rapide tant qu'une bille est en jeu
+  //  - pk-win : toutes les ampoules clignotent (gain >= 2x)
+  //  - pk-jackpot : stroboscope arc-en-ciel + plateau qui flashe (gain >= 10x)
+  function buildBulbsHTML() {
+    const top = 24;
+    const side = 16;
+    const colors = ['#f4d976', '#ff5a6a', '#5ad1ff'];
+    const bulbs = [];
+    let i = 0;
+    const add = (x, y) => {
+      bulbs.push(`<span class="pk-bulb" style="left:${x}%;top:${y}%;--i:${i};--c:${colors[Math.floor(i / 3) % colors.length]}"></span>`);
+      i++;
+    };
+    for (let k = 0; k < top; k++) add((k / (top - 1)) * 100, 0);        // haut, gauche -> droite
+    for (let k = 1; k < side; k++) add(100, (k / side) * 100);          // droite, haut -> bas
+    for (let k = top - 1; k >= 0; k--) add((k / (top - 1)) * 100, 100); // bas, droite -> gauche
+    for (let k = side - 1; k >= 1; k--) add(0, (k / side) * 100);       // gauche, bas -> haut
+    return bulbs.join('');
+  }
+
+  function updateLiveLights() {
+    const cab = document.getElementById('pk-cabinet');
+    if (cab) cab.classList.toggle('pk-live', balls.length > 0);
+  }
+
+  function celebrate(mult) {
+    const cab = document.getElementById('pk-cabinet');
+    if (!cab) return;
+    let mode = null;
+    if (mult >= 10) mode = 'pk-jackpot';
+    else if (mult >= 2) mode = 'pk-win';
+    updateLiveLights();
+    if (!mode) return;
+    if (cab.classList.contains('pk-jackpot') && mode === 'pk-win') return; // un jackpot en cours reste prioritaire
+    cab.classList.remove('pk-win', 'pk-jackpot');
+    void cab.offsetWidth;
+    cab.classList.add(mode);
+    clearTimeout(lightsTimer);
+    lightsTimer = setTimeout(() => cab.classList.remove('pk-win', 'pk-jackpot'), mode === 'pk-jackpot' ? 3000 : 1300);
   }
 
   function pushLog(mult, payout, bet) {
@@ -395,7 +476,7 @@ const Plinko = (() => {
     return BET_AMOUNTS.map((amount) => (
       `<button type="button" class="pk-bet-btn" data-amount="${amount}">
          <span class="pk-bet-btn-amount">${amount}</span>
-         <span class="pk-bet-btn-coin">🪙</span>
+         <span class="pk-bet-btn-coin coin-icon" aria-hidden="true"></span>
        </button>`
     )).join('');
   }
@@ -423,9 +504,12 @@ const Plinko = (() => {
     }
     if (!Wallet.canAfford(amount)) {
       setMessage('Solde insuffisant pour cette mise.', 'msg-warn');
+      Sfx.denied();
       return;
     }
     Wallet.subtract(amount);
+    Sfx.drop();
+    if (window.Stats) Stats.round();
 
     // Spawn aléatoire proche du centre, comme dropBallRandom() du repo
     // de référence : ça évite qu'une balle tombe pile sur l'axe de
@@ -467,6 +551,7 @@ const Plinko = (() => {
 
     renderSettings();
     updateBetButtonsState();
+    updateLiveLights();
     setMessage('La balle tombe...');
     ensureLoop();
   }
@@ -519,9 +604,15 @@ const Plinko = (() => {
               <span class="pk-stat-value" id="pk-risk-value">${RISK_LABELS[risk]}</span>
             </div>
           </div>
-          <div class="pk-canvas-wrap">
-            <canvas class="pk-canvas" id="pk-canvas" width="${WIDTH}" height="${HEIGHT}"></canvas>
-            <div class="pk-bins-row" id="pk-bins-row"></div>
+          <div class="pk-cabinet" id="pk-cabinet">
+            <div class="pk-neon" aria-hidden="true">PLINKO</div>
+            <div class="pk-marquee">
+              <div class="pk-bulbs" aria-hidden="true">${buildBulbsHTML()}</div>
+              <div class="pk-canvas-wrap">
+                <canvas class="pk-canvas" id="pk-canvas" width="${WIDTH}" height="${HEIGHT}"></canvas>
+                <div class="pk-bins-row" id="pk-bins-row"></div>
+              </div>
+            </div>
           </div>
           <div class="pk-log" id="pk-log"></div>
         </div>

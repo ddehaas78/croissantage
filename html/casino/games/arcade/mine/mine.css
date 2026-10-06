@@ -368,3 +368,36 @@
     width: 100%;
   }
 }
+
+/* ---------------- Images des cases (diamant / bombe / explosion) ---------------- */
+.mn-tile-img {
+  position: relative;
+  width: 62%;
+  height: 62%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 1;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.45));
+}
+.mn-tile-gem .mn-tile-img {
+  filter: drop-shadow(0 0 8px rgba(63, 224, 168, 0.75)) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.45));
+  animation: mn-gem-shine 0.5s ease;
+}
+.mn-tile-boom {
+  position: absolute;
+  inset: 4%;
+  width: 92%;
+  height: 92%;
+  pointer-events: none;
+  animation: mn-boom 0.45s ease-out both;
+}
+@keyframes mn-gem-shine {
+  0% { transform: scale(0.4) rotate(-20deg); }
+  70% { transform: scale(1.15) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@keyframes mn-boom {
+  0% { transform: scale(0.2) rotate(0); opacity: 0; }
+  50% { transform: scale(1.2) rotate(20deg); opacity: 1; }
+  100% { transform: scale(1) rotate(12deg); opacity: 0.95; }
+}

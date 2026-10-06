@@ -110,12 +110,14 @@ const BlackJack = (() => {
     const el = wrap.firstElementChild;
     el.classList.add('bj-entering');
     target.appendChild(el);
+    Sfx.cardSlide(); // calé sur la transition d'entrée de la carte
     // force le reflow puis relâche la classe d'entrée pour jouer la transition
     void el.offsetWidth;
     el.classList.remove('bj-entering');
     await sleep(240);
     if (faceUp) {
       el.classList.add('bj-flipped');
+      Sfx.cardFlip();
       await sleep(340);
     }
   }
@@ -204,15 +206,18 @@ const BlackJack = (() => {
     const amount = chipAmount(def);
     if (amount <= 0 || !Wallet.canAfford(bet + amount)) {
       setMessage('Solde insuffisant pour ce jeton.', 'bj-msg-warn');
+      Sfx.denied();
       return;
     }
     bet += amount;
+    Sfx.chip();
     updateBetDisplay();
     setMessage(`Mise : ${fmt(bet)} 🪙. Cliquez sur DISTRIBUER quand vous êtes prêt.`);
   }
 
   function clearBet() {
     if (inRound) return;
+    if (bet > 0) Sfx.chipsSweep();
     bet = 0;
     updateBetDisplay();
     setMessage('Mise effacée. Choisissez vos jetons.');
@@ -225,6 +230,7 @@ const BlackJack = (() => {
       return;
     }
     bet = lastBet;
+    Sfx.chipStack();
     updateBetDisplay();
     setMessage(`Mise : ${fmt(bet)} 🪙. Cliquez sur DISTRIBUER.`);
   }
@@ -249,6 +255,8 @@ const BlackJack = (() => {
       return;
     }
     Wallet.subtract(bet);
+    Sfx.chipStack();
+    if (window.Stats) Stats.round();
     lastBet = bet;
     inRound = true;
     playerDone = false;
@@ -328,6 +336,7 @@ const BlackJack = (() => {
     }
     Wallet.subtract(bet);
     bet *= 2;
+    Sfx.chipStack();
     updateBetDisplay();
     document.getElementById('bj-hit-btn').disabled = true;
     document.getElementById('bj-double-btn').disabled = true;
@@ -352,6 +361,7 @@ const BlackJack = (() => {
     const holeEl = document.querySelector('#bj-dealer-hand .bj-card:nth-child(2)');
     if (holeEl && !holeEl.classList.contains('bj-flipped')) {
       holeEl.classList.add('bj-flipped');
+      Sfx.cardFlip();
       await sleep(340);
     }
     renderScores();
@@ -411,6 +421,11 @@ const BlackJack = (() => {
     }
 
     if (payout > 0) Wallet.add(payout);
+
+    if (outcome === 'BJ') Sfx.win(3);
+    else if (outcome === 'W') Sfx.win(bet > lastBet ? 2 : 1); // gain doublé = jingle plus long
+    else if (outcome === 'P') Sfx.push();
+    else Sfx.lose();
 
     const playerCardsEl = document.getElementById('bj-player-hand');
     const dealerCardsEl = document.getElementById('bj-dealer-hand');
